@@ -37,19 +37,20 @@ const _MOUSE_ACTIONS := {
 }
 
 const TUNING_PATH := "res://data/tuning.tres"
-## 章节顺序。正式章节做好一章就接一章：现在有 ch0–ch3，ch4 做好后加进来，测试关不再进这张表。
+## 章节顺序。四章正式章节都在这里；测试关只留在 tests 里当样本，不进这张表。
 ## 终章按倒序接上各章的回程赛道。
 const CHAPTERS := [
 	[&"ch0", "res://scenes/levels/ch0_fall.tscn"],
 	[&"ch1", "res://scenes/levels/ch1_vine.tscn"],
 	[&"ch2", "res://scenes/levels/ch2_mirror.tscn"],
 	[&"ch3", "res://scenes/levels/ch3_crack.tscn"],
+	[&"ch4", "res://scenes/levels/ch4_pair.tscn"],
 ]
 ## 终章：最后一章通关后进。它不在章节表里，存档里的 chapter 记成 "finale"。
 const FINALE_ID := "finale"
 const FINALE_SCENE := "res://scenes/levels/finale.tscn"
-## 全游戏一共 12 个人，全救出来才有隐藏结局。测试检查它等于章节表里各章小人的总数。
-## 正式章节还没做完（现在表里只有序章的守夜人），所以隐藏结局暂时打不出来，等 ch1–ch4 齐了才通。
+## 全游戏一共 12 个人，全救出来才有隐藏结局。tests/test_full 检查它等于章节表里各章小人的总数，
+## 也检查 12 个职业不重不漏。
 const NPC_TOTAL := 12
 const TITLE_SCENE := "res://scenes/ui/title.tscn"
 const ENDING_SCENE := "res://scenes/ui/ending.tscn"
