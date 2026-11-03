@@ -8,8 +8,8 @@ const LEVEL := "res://scenes/levels/ch3_crack.tscn"
 const POSES := [
 	[Vector2i(3, 24), 0, Vector2.RIGHT, 30, ""],
 	[Vector2i(5, 22), 0, Vector2.UP, 30, ""],        # 铁门
-	[Vector2i(29, 20), 0, Vector2.RIGHT, 30, ""],    # 加速带和前面的裂纹墙
-	[Vector2i(29, 20), 0, Vector2.RIGHT, 150, "run_right"],
+	[Vector2i(26, 20), 0, Vector2.RIGHT, 30, ""],    # 直道和前面的裂纹墙
+	[Vector2i(26, 20), 0, Vector2.RIGHT, 150, "run_right"],
 	[Vector2i(51, 19), 0, Vector2.RIGHT, 40, ""],    # 栅栏后的锁匠
 	[Vector2i(45, 21), 0, Vector2.RIGHT, 30, ""],    # 检查点
 	[Vector2i(62, 20), 0, Vector2.RIGHT, 30, ""],    # 软垫和出口
