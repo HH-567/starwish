@@ -26,10 +26,11 @@ data/tiles.tres                TileSet：32px，物理层 0 = 黑墙，遮光层
 scenes/levels/ch0_fall.tscn    序章；ch1_vine / ch2_mirror / ch3_crack / ch4_pair 同理
 scenes/levels/finale.tscn      终章：开头（Intro）和结尾（Outro），中间的赛道运行时从各章接上（finale.gd）
 scenes/entities/*.tscn         小星、小人、墙、道具、噬光者
-scenes/ui/                     HUD、标题（主场景）、暂停菜单、结局；触屏控件之后加
+scenes/ui/                     HUD、标题（主场景）、暂停菜单、结局；触屏摇杆在 HUD 里
 scripts/autoload/game.gd       流程状态机 + 全局信号
 scripts/autoload/save.gd       存档与进度
 scripts/autoload/audio.gd      音效：只听 Game 的信号，第一次输入之前不播（浏览器策略）
+scripts/autoload/controls.gd   输入来源：KBM ⇄ TOUCH，小星只读统一的 move / aim
 audio/                         十个一次性音效（救人、撞墙、烧藤、墙碎、传送、帮助、过关、死亡、登场、结局）
 scripts/data/tuning.gd         Tuning 资源类
 scripts/entities/、scripts/levels/（chapter.gd 是所有章节场景的根脚本，finale.gd 是终章的根脚本）
@@ -39,6 +40,8 @@ tests/                         无头测试；不打进导出包
 ```
 
 音效在 `audio/` 里，是 `tools` 之外用一段一次性的 numpy 脚本生成的（22.05 kHz 单声道，共约 330 KB），要换音色重新生成就行。`Audio` autoload 只接 Game 的全局信号，不直接调玩法代码；Web 上音频要等第一次点击/按键，`Game._input` 会调 `Audio.unlock()`。同一种音效有冷却，连续撞墙不会糊成一片。
+
+触屏：左半屏按住拖动 = 摇杆移动，右半屏拖动 = 瞄准（松手就朝移动方向），右下角"光"按钮来回切散射/聚光，右上角暂停。控件在 HUD 里（`scenes/ui/hud.tscn` 的 Touch 节点），只在 `Controls.touch` 为真时出现并吃输入；键鼠按一下就把 `Controls.touch` 关掉，控件收起来、完全不挡鼠标，暂停时也收起来（暂停菜单的按钮要能点）。触摸事件带 index，所以两个大拇指能同时推两根摇杆。
 
 章节顺序写在 `game.gd` 的常量里：`CHAPTERS = [["ch0", "res://scenes/levels/ch0_fall.tscn"], ...]`。
 

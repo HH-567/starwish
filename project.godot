@@ -21,6 +21,7 @@ config/icon="res://assets/icon.svg"
 Save="*res://scripts/autoload/save.gd"
 Game="*res://scripts/autoload/game.gd"
 Audio="*res://scripts/autoload/audio.gd"
+Controls="*res://scripts/autoload/controls.gd"
 
 [display]
 

@@ -16,6 +16,8 @@ const MAX_HITS_PER_FRAME := 4
 const BUMP_MIN := 40.0
 ## 鼠标离小星这么近时不改瞄准方向。
 const AIM_DEADZONE := 4.0
+## 触屏右摇杆推到这个比例以上才算在瞄准。
+const TOUCH_AIM_DEADZONE := 0.25
 const TRAIL_POINTS := 22
 const GLOW_TEX := 256
 ## 星体周围那圈光晕的半径。亮度看光环（StarLight 画的圆）。
@@ -76,7 +78,8 @@ func _physics_process(delta: float) -> void:
 				charge_left -= delta
 				charged = charge_left > 0.0
 			else:
-				var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+				# 触屏时方向来自左摇杆，键鼠时读按键（docs/state-machines.md 第 14 节）。
+				var input: Vector2 = Controls.move if Controls.touch else Input.get_vector("move_left", "move_right", "move_up", "move_down")
 				velocity = step_velocity(velocity, input, delta)
 			_move(delta)
 			_update_stage()
@@ -135,13 +138,21 @@ func _arrive() -> void:
 	_set_state(State.ACTIVE)
 	Game.warped.emit()
 
-## 左键/空格切散射，右键/Shift 切聚光；瞄准跟着鼠标。
+## 左键/空格切散射，右键/Shift 切聚光；触屏点"光"按钮来回切。键鼠时瞄准跟着鼠标。
 func _read_light_input() -> void:
-	if Input.is_action_just_pressed("light_scatter"):
+	if Controls.take_mode_toggle():
+		light_mode = LightMode.FOCUS if light_mode == LightMode.SCATTER else LightMode.SCATTER
+	elif Input.is_action_just_pressed("light_scatter"):
 		light_mode = LightMode.SCATTER
 	elif Input.is_action_just_pressed("light_focus"):
 		light_mode = LightMode.FOCUS
-	if aim_from_mouse:
+	if Controls.touch:
+		# 触屏：右摇杆瞄准；没推就朝移动方向。
+		if Controls.aim.length() > TOUCH_AIM_DEADZONE:
+			aim = Controls.aim.normalized()
+		elif velocity.length() > 1.0:
+			aim = velocity.normalized()
+	elif aim_from_mouse:
 		var to_mouse := get_global_mouse_position() - global_position
 		if to_mouse.length() > AIM_DEADZONE:
 			aim = to_mouse.normalized()
