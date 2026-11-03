@@ -15,6 +15,8 @@ const HELP_TEXT := {
 	&"scientist": "科学家打开了虫洞：以阶段 5 冲进去，掉头撞碎它",
 }
 const TOAST_TIME := 2.5
+## 关卡里的提示牌停留久一点，够读完一句话。
+const HINT_TIME := 4.0
 
 var _toast: Label
 var _toast_left := 0.0
@@ -30,11 +32,19 @@ func _ready() -> void:
 	_toast.modulate.a = 0.0
 	add_child(_toast)
 	Game.help_triggered.connect(_on_help_triggered)
+	Game.hint_shown.connect(_on_hint_shown)
 
 func _on_help_triggered(role: StringName) -> void:
 	if HELP_TEXT.has(role):
-		_toast.text = HELP_TEXT[role]
-		_toast_left = TOAST_TIME
+		_show(HELP_TEXT[role], TOAST_TIME)
+
+func _on_hint_shown(text: String) -> void:
+	if not text.is_empty():
+		_show(text, HINT_TIME)
+
+func _show(text: String, time: float) -> void:
+	_toast.text = text
+	_toast_left = time
 
 func _process(delta: float) -> void:
 	_toast_left = maxf(_toast_left - delta, 0.0)

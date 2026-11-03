@@ -8,6 +8,7 @@ const LEVEL := "res://scenes/levels/ch0_fall.tscn"
 var _failures := 0
 var _player: Player
 var _events: Array[StringName] = []
+var _hints: Array[String] = []
 
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
@@ -16,6 +17,7 @@ func _ready() -> void:
 	Game.npc_rescued.connect(func(_id: String) -> void: _events.append(&"rescued"))
 	Game.checkpoint_reached.connect(func(_id: String) -> void: _events.append(&"checkpoint"))
 	Game.chapter_cleared.connect(func(_c: StringName) -> void: _events.append(&"cleared"))
+	Game.hint_shown.connect(func(text: String) -> void: _hints.append(text))
 	add_child((load(LEVEL) as PackedScene).instantiate())
 	_player = get_tree().get_first_node_in_group(&"player") as Player
 	_player.aim_from_mouse = false
@@ -48,6 +50,7 @@ func _walk() -> bool:
 	_check("出生房：按住右撞上东墙时是阶段 2", reached == 2, "最高阶段 %d" % reached)
 	_check("阶段 2 撞墙扣掉 s2_damage", is_equal_approx(_player.light, before - Game.tuning.s2_damage), "%.0f → %.0f" % [before, _player.light])
 	_check("撞完还活着", _player.state == Player.State.ACTIVE)
+	_check("跑向墙的路上浮出撞墙的提示", _hints.has(Hints.TEXT[&"bump"]), "%s" % [_hints])
 
 	# 竖井里的小星星：碰到回 shard_amount。
 	var low := _player.light
@@ -56,11 +59,13 @@ func _walk() -> bool:
 	await _frames(30)
 	Input.action_release("move_up")
 	_check("竖井：捡到小星星回亮度", _player.light > low, "%.0f → %.0f" % [low, _player.light])
+	_check("竖井：浮出小星星的提示", _hints.has(Hints.TEXT[&"shard"]))
 
 	# 守夜人：散射照 2 秒。
 	_put(Vector2i(36, 9))
 	await _frames(140)
 	_check("照亮守夜人", _saved(&"watchman"))
+	_check("走到守夜人跟前：浮出救人的提示", _hints.has(Hints.TEXT[&"save"]))
 	_check("救到人：亮度上限 +light_per_rescue 并回满", is_equal_approx(_player.light, _player.light_max) and is_equal_approx(_player.light_max, Game.tuning.light_base + Game.tuning.light_per_rescue), "%.0f / %.0f" % [_player.light, _player.light_max])
 
 	# 检查点：走进去就记下。
