@@ -13,6 +13,8 @@ const POSES := [
 	[Vector2i(50, 18), 0, Vector2.DOWN, 120],     # 钟表匠
 	[Vector2i(55, 18), 0, Vector2.RIGHT, 30],     # 铁门
 	[Vector2i(61, 22), 0, Vector2.RIGHT, 30],     # 出口
+	[Vector2i(90, 23), 0, Vector2.RIGHT, 40],     # 加长的去程街道（黑洞和流星）
+	[Vector2i(105, 14), 0, Vector2.RIGHT, 40],    # 回程
 ]
 
 func _ready() -> void:
