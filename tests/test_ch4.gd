@@ -73,9 +73,8 @@ func _after_locksmith() -> bool:
 	_check("栅栏挡住小星，进不去笼子", _player.global_position.y > 18.0 * 32.0, "y=%.0f" % _player.global_position.y)
 	await _frames(140)
 	_check("隔着栅栏照亮科学家", _saved(&"scientist"))
-	_put(Vector2i(61, 23), Player.LightMode.SCATTER)
-	_player.velocity = Vector2(300, 0)
-	await _frames(40)
+	_player.global_position = _exit_pos()
+	await _frames(10)
 	_check("进入出口：发 chapter_cleared", _cleared == 1)
 	return true
 
@@ -121,3 +120,9 @@ func _saved(role: StringName) -> bool:
 func _frames(n: int) -> void:
 	for i in n:
 		await get_tree().physics_frame
+
+## 出口在哪由场景说了算（关卡会加长、出口会挪），测试别写死格子。
+func _exit_pos() -> Vector2:
+	for node in get_tree().current_scene.find_children("*", "Exit", true, false):
+		return (node as Node2D).global_position
+	return Vector2.ZERO

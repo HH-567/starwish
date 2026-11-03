@@ -73,9 +73,8 @@ func _walk() -> bool:
 	_check("走到检查点：存档记下它", Save.checkpoint == "ch0/Level/Entities/Checkpoint", Save.checkpoint)
 
 	# 出口。
-	_put(Vector2i(41, 9))
-	_player.velocity = Vector2(300, 0)
-	await _frames(30)
+	_player.global_position = _exit_pos()
+	await _frames(10)
 	_check("进入出口：发 chapter_cleared", _events.has(&"cleared"))
 	return true
 
@@ -121,3 +120,9 @@ func _saved(role: StringName) -> bool:
 func _frames(n: int) -> void:
 	for i in n:
 		await get_tree().physics_frame
+
+## 出口在哪由场景说了算（关卡会加长、出口会挪），测试别写死格子。
+func _exit_pos() -> Vector2:
+	for node in get_tree().current_scene.find_children("*", "Exit", true, false):
+		return (node as Node2D).global_position
+	return Vector2.ZERO

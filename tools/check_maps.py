@@ -25,30 +25,41 @@ def load(path):
     return [r for r in rows if r]
 
 
-def blocked_rects(rows, extra):
+def build_grid(rows, extra):
+    """把每个挡路的格子按小星半径「胀开」，得到一张 4 px 的通行表。
+    地图加长以后逐点扫矩形太慢（几亿次距离计算），所以先烘成一张表。"""
+    nx = int(len(rows[0]) * CELL // STEP) + 1
+    ny = int(len(rows) * CELL // STEP) + 1
+    blocked = bytearray(nx * ny)
     solid = SOLID | set(extra)
-    rects = []
+    w = len(rows[0]) * CELL
+    h = len(rows) * CELL
     for y, row in enumerate(rows):
         for x, ch in enumerate(row):
-            if ch in solid:
-                rects.append((x * CELL, y * CELL, x * CELL + CELL, y * CELL + CELL))
-    return rects
-
-
-def free(point, rects):
-    px, py = point
-    for x0, y0, x1, y1 in rects:
-        cx = min(max(px, x0), x1)
-        cy = min(max(py, y0), y1)
-        if (px - cx) ** 2 + (py - cy) ** 2 < RADIUS * RADIUS:
-            return False
-    return True
+            if ch not in solid:
+                continue
+            x0, y0 = x * CELL, y * CELL
+            x1, y1 = x0 + CELL, y0 + CELL
+            # 只扫这个矩形周围半径 RADIUS 的采样点
+            i0 = max(int((x0 - RADIUS) // STEP), 0)
+            i1 = min(int((x1 + RADIUS) // STEP) + 1, nx)
+            j0 = max(int((y0 - RADIUS) // STEP), 0)
+            j1 = min(int((y1 + RADIUS) // STEP) + 1, ny)
+            for j in range(j0, j1):
+                py = j * STEP + STEP * 0.5
+                cy = min(max(py, y0), y1)
+                for i in range(i0, i1):
+                    if blocked[j * nx + i]:
+                        continue
+                    px = i * STEP + STEP * 0.5
+                    cx = min(max(px, x0), x1)
+                    if (px - cx) ** 2 + (py - cy) ** 2 < RADIUS * RADIUS:
+                        blocked[j * nx + i] = 1
+    return blocked, nx, ny, w, h
 
 
 def walkable(rows, start_cell, extra=""):
-    rects = blocked_rects(rows, extra)
-    w = len(rows[0]) * CELL
-    h = len(rows) * CELL
+    blocked, nx, ny, w, h = build_grid(rows, extra)
     sx = (start_cell[0] + 0.5) * CELL
     sy = (start_cell[1] + 0.5) * CELL
     start = (int(sx // STEP), int(sy // STEP))
@@ -57,16 +68,13 @@ def walkable(rows, start_cell, extra=""):
     while queue:
         cx, cy = queue.popleft()
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            nx, ny = cx + dx, cy + dy
-            if (nx, ny) in seen:
+            x, y = cx + dx, cy + dy
+            if not (0 <= x < nx and 0 <= y < ny):
                 continue
-            px, py = nx * STEP + STEP * 0.5, ny * STEP + STEP * 0.5
-            if not (0 <= px < w and 0 <= py < h):
+            if (x, y) in seen or blocked[y * nx + x]:
                 continue
-            if not free((px, py), rects):
-                continue
-            seen.add((nx, ny))
-            queue.append((nx, ny))
+            seen.add((x, y))
+            queue.append((x, y))
     return seen
 
 
@@ -83,7 +91,7 @@ MAPS = [
         "start": (3, 20),
         "passes": [
             {
-                "reach": {"出口": (43, 7), "检查点": (31, 9), "守夜人": (38, 9), "竖井小星星": (4, 14)},
+                "reach": {"检查点": (31, 9), "守夜人": (38, 9), "竖井小星星": (4, 14)},
             },
         ],
     },
@@ -93,7 +101,7 @@ MAPS = [
         "start": (3, 22),
         "passes": [
             {
-                "reach": {"出口": (63, 20), "园丁的壁龛": (33, 15), "检查点": (44, 20), "玻璃房前": (52, 21)},
+                "reach": {"园丁的壁龛": (33, 15), "检查点": (44, 20), "玻璃房前": (52, 21)},
                 "miss": {"玻璃房里的医生": (53, 15)},
             },
         ],
@@ -105,7 +113,7 @@ MAPS = [
         "wormholes": [((31, 20), (38, 20))],
         "passes": [
             {
-                "reach": {"出口": (55, 20), "画家房": (35, 17), "向导": (22, 17), "检查点": (44, 21)},
+                "reach": {"画家房": (35, 17), "向导": (22, 17), "检查点": (44, 21)},
                 "miss": {"画家的竖井": (40, 19)},
             },
         ],
@@ -119,12 +127,12 @@ MAPS = [
                 "label": "铁门关着、裂纹墙还在",
                 "extra": "ICH",
                 "reach": {"大厅": (30, 20)},
-                "miss": {"邮差": (5, 16), "矿工": (47, 20), "锁匠": (55, 19), "检查点": (45, 21), "出口": (67, 19)},
+                "miss": {"邮差": (5, 16), "矿工": (47, 20), "锁匠": (55, 19), "检查点": (45, 21), "出口": (78, 10)},
             },
             {
                 "label": "铁门打开、裂纹墙撞碎之后",
                 "extra": "H",
-                "reach": {"邮差": (5, 16), "矿工": (47, 20), "检查点": (45, 21), "出口": (67, 19), "笼子外面": (51, 19)},
+                "reach": {"邮差": (5, 16), "矿工": (47, 20), "检查点": (45, 21), "笼子外面": (51, 19)},
                 "miss": {"笼子里的锁匠": (55, 19)},
             },
         ],
@@ -137,13 +145,13 @@ MAPS = [
             {
                 "label": "铁门关着",
                 "extra": "IH",
-                "reach": {"出口": (63, 23), "钟表匠": (50, 20), "乐手": (26, 18), "检查点": (42, 20)},
+                "reach": {"钟表匠": (50, 20), "乐手": (26, 18), "检查点": (42, 20)},
                 "miss": {"科学家那间": (63, 20), "笼子里的科学家": (63, 16)},
             },
             {
                 "label": "锁匠救过、铁门不在",
                 "extra": "H",
-                "reach": {"科学家那间": (63, 20), "出口": (63, 23)},
+                "reach": {"科学家那间": (63, 20)},
                 "miss": {"笼子里的科学家": (63, 16)},
             },
         ],

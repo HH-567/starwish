@@ -14,6 +14,10 @@ const POSES := [
 	[Vector2i(36, 9), false, Vector2.RIGHT, 30, ""],
 	[Vector2i(37, 9), false, Vector2.RIGHT, 130, "rescue"],
 	[Vector2i(41, 9), false, Vector2.RIGHT, 40, ""],
+	[Vector2i(60, 8), false, Vector2.RIGHT, 30, ""],     # 加长的去程街道
+	[Vector2i(112, 12), false, Vector2.RIGHT, 30, ""],   # 东头折返
+	[Vector2i(70, 17), false, Vector2.RIGHT, 30, ""],    # 回程
+	[Vector2i(50, 17), false, Vector2.RIGHT, 30, ""],    # 新出口
 ]
 
 func _ready() -> void:
