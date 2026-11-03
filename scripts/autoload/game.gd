@@ -209,7 +209,8 @@ func _on_player_died(_cause: int) -> void:
 
 ## 邮差被救：等信的人一起被救。人在这一章就让他自己演出来，不在的只记进存档。
 func _on_npc_rescued(id: String) -> void:
-	if Save.rescued[id] == &"postman":
+	# 用 get() 查：id 不在里面时直接下标访问会报错（信号可能被别的代码带着陌生 id 触发）。
+	if Save.rescued.get(id, &"") == &"postman":
 		for target in Save.mail.keys():
 			if Save.rescued.has(target):
 				continue
@@ -244,6 +245,11 @@ func _fade_to(alpha: float) -> void:
 	var tween := create_tween()
 	tween.tween_property(_fade, "color:a", alpha, FADE_TIME)
 	await tween.finished
+
+## 第一次按键、点击或触摸：Web 上要等用户操作过之后音频才允许播放，从这里解锁。
+func _input(event: InputEvent) -> void:
+	if Audio.locked and (event is InputEventKey or event is InputEventMouseButton or event is InputEventScreenTouch):
+		Audio.unlock()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause"):

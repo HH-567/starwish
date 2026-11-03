@@ -172,7 +172,31 @@ def check(spec, one_pass):
     return ok
 
 
+## 回程赛道：从最右边的 Entry 一路往左跑到最左边的 Exit。终章把它们首尾接起来，
+## 任何一段跑不过去整条终章就废了。矿工的隧道（T）当成墙和不当成墙各查一遍。
+LANES = ["tools/ch0_lane.txt", "tools/ch1_lane.txt", "tools/ch2_lane.txt", "tools/ch3_lane.txt", "tools/ch4_lane.txt", "tools/finale_outro.txt"]
+
+
+def check_lane(path, extra, label):
+    rows = load(path)
+    start = (len(rows[0]) - 1, 8)
+    # 终章结尾最左边是逃离点（E 占 1–2 列），所以目标取第 1 列
+    end = (1, 8)
+    seen = walkable(rows, start, extra)
+    ok = sample(end) in seen
+    if not ok:
+        print("FAIL", path, label, "从 Entry 跑不到 Exit")
+    print("PASS" if ok else "FAIL", path, label)
+    return ok
+
+
 ok = True
+for lane_path in LANES:
+    name = lane_path.split("/")[-1]
+    # 隧道关着（没救矿工）：得从墙下面绕
+    ok = check_lane(lane_path, "T", name + "：隧道关着") and ok
+    # 隧道开着
+    ok = check_lane(lane_path, "", name + "：隧道开着") and ok
 for map_spec in MAPS:
     for one_pass in map_spec["passes"]:
         ok = check(map_spec, one_pass) and ok

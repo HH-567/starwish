@@ -21,6 +21,7 @@ var _words: Label
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	Audio.play(&"ending")
 	_count = Save.rescued.size()
 	_words = Menu.label("整座城都亮了" if Game.ending == &"hidden" else "长夜暂退", 40, Color("e8ecff"))
 	_words.modulate.a = 0.0

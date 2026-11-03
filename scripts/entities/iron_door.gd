@@ -45,7 +45,7 @@ func open() -> void:
 	queue_free()
 
 func _on_npc_rescued(id: String) -> void:
-	if Save.rescued[id] == &"locksmith":
+	if Save.rescued.get(id, &"") == &"locksmith":
 		open()
 
 func _draw() -> void:

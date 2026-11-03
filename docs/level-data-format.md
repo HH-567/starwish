@@ -29,12 +29,16 @@ scenes/entities/*.tscn         小星、小人、墙、道具、噬光者
 scenes/ui/                     HUD、标题（主场景）、暂停菜单、结局；触屏控件之后加
 scripts/autoload/game.gd       流程状态机 + 全局信号
 scripts/autoload/save.gd       存档与进度
+scripts/autoload/audio.gd      音效：只听 Game 的信号，第一次输入之前不播（浏览器策略）
+audio/                         十个一次性音效（救人、撞墙、烧藤、墙碎、传送、帮助、过关、死亡、登场、结局）
 scripts/data/tuning.gd         Tuning 资源类
 scripts/entities/、scripts/levels/（chapter.gd 是所有章节场景的根脚本，finale.gd 是终章的根脚本）
 scripts/fx/                    碎片特效、光照工具（lighting.gd）、梦想浮现的占位画（dreams.gd）
-tools/                         测试关和终章的生成器 build_test_levels、截图工具 shots / shots_ui / shots_finale；不打进导出包
+tools/                         关卡生成器 build_test_levels、连通性检查 check_maps.py、各章的截图工具；不打进导出包
 tests/                         无头测试；不打进导出包
 ```
+
+音效在 `audio/` 里，是 `tools` 之外用一段一次性的 numpy 脚本生成的（22.05 kHz 单声道，共约 330 KB），要换音色重新生成就行。`Audio` autoload 只接 Game 的全局信号，不直接调玩法代码；Web 上音频要等第一次点击/按键，`Game._input` 会调 `Audio.unlock()`。同一种音效有冷却，连续撞墙不会糊成一片。
 
 章节顺序写在 `game.gd` 的常量里：`CHAPTERS = [["ch0", "res://scenes/levels/ch0_fall.tscn"], ...]`。
 
