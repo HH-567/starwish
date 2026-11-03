@@ -17,6 +17,9 @@ func _ready() -> void:
 	# 测试里死亡不重载场景。
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	# 这条测的是机制，不是平衡：速度、间距固定成写测试时的值，改 tuning 不该让它红。
+	Game.tuning.boss_speed = 790.0
+	Game.tuning.boss_gap_start = 500.0
 	Game.boss_state_changed.connect(func(s: int) -> void: _states.append(s))
 	var finished: Variant = await _cases()
 	_check("所有用例都跑完了", finished == true)

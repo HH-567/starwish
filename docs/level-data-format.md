@@ -232,10 +232,10 @@ save_id = `<chapter_id>/<从章节根到该节点的路径>`，例如 `ch1/Level
 | 小人 | wake_time / pair_time / vine_burn_time | 2.0 / 1.5 / 1.5 | 秒 |
 | | progress_decay | 2.0 | 没照到时进度回落的倍率 |
 | 虫洞 | warp_cooldown | 0.3 | 秒 |
-| 追逐 | boss_speed | 870 | 比 WASD 能到的最快（759）快得多，也快过加速带衰减后的平均速度：不救人的话只有把每段赛道的加速带都用满才拉得开 |
-| | boss_gap_start / boss_gap_max | 380 / 900 | 沿轨迹的距离；超过 max 时噬光者提速跟上 |
+| 追逐 | boss_speed | 420 | 难度不压在这个数上：回程赛道是蛇形，每段有 3 处拐角和一个窄口，拐弯掉速就会被咬。跑到 420 以上，就算一路顺也甩不开 |
+| | boss_gap_start / boss_gap_max | 500 / 900 | 沿轨迹的距离；超过 max 时噬光者提速跟上 |
 | | boss_catch_speed | 1100 | 落后超过 boss_gap_max 时提到这个速度 |
-| | boss_drain | 110 | 接触时每秒吸走的亮度（满亮度撑不住一秒） |
+| | boss_drain | 80 | 接触时每秒吸走的亮度 |
 | | chase_respawn_speed | 600 | 追逐中复活时的初速（阶段 4） |
 | 帮助 | help_slow_time / help_slow_mult | 2.0 / 0.5 | 钟表匠：噬光者减速几秒、速度乘多少 |
 | | help_knockback | 400 | 乐手：噬光者沿轨迹往后退多少 px；守夜人的盾挡住一次接触时退一半 |
