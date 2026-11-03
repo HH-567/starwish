@@ -1,6 +1,6 @@
 extends Node
-## 流程测试：标题 → 新游戏 → 第一章 → 检查点 → 死亡从检查点复活 → 暂停 → 通关进第二章
-## → 回标题能继续 → 最后一章通关进终章 → 跑过赛道的 Entry 记成检查点 → 死亡从那里重来
+## 流程测试（按章节表跑，表里有几章就测几章）：标题 → 新游戏 → 第一章 → 检查点 → 死亡从检查点复活 → 暂停
+## → 一章章通关 → 最后一章通关进终章 → 跑过赛道的 Entry 记成检查点 → 死亡从那里重来
 ## → 回标题再继续回到那里 → 跑到逃离点进正常结局 → 存档记下结局 → 回标题不能再继续。
 ##   godot --headless --path . --fixed-fps 60 res://tests/test_flow.tscn
 ## 流程会换场景，测试场景自己会被删掉，所以测试逻辑放在挂到 root 下的 Runner 上。
@@ -12,11 +12,14 @@ func _ready() -> void:
 
 class Runner extends Node:
 	var _failures := 0
+	## 章节表里的 id，按顺序。
+	var _ids: Array[StringName] = []
 
 	func _ready() -> void:
 		Save.path = PATH
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 		Game.debug_no_decay = true
+		_ids.assign(Game.chapters.map(func(c: Array) -> StringName: return c[0]))
 		var finished: Variant = await _run()
 		_check("全部步骤都跑完了", finished == true)
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
@@ -29,8 +32,8 @@ class Runner extends Node:
 		_check("没有存档：不能继续", not Game.can_continue())
 
 		Game.start_new()
-		_check("新游戏：进第一章", await _until(func() -> bool: return _playing(&"test_light")))
-		_check("进章节就写存档", _disk().get("chapter") == "test_light")
+		_check("新游戏：进第一章 %s" % _ids[0], await _until(func() -> bool: return _playing(_ids[0])))
+		_check("进章节就写存档", _disk().get("chapter") == String(_ids[0]))
 
 		var cp := _find(Checkpoint) as Checkpoint
 		var cp_id := cp.save_id
@@ -47,19 +50,16 @@ class Runner extends Node:
 		Game.toggle_pause()
 		_check("再按一次继续", not get_tree().paused and Game.flow == Game.Flow.PLAYING)
 
-		_player().global_position = (_find(Exit) as Node2D).global_position
-		_check("进出口：切到第二章", await _until(func() -> bool: return _playing(&"test_feel")))
-		_check("通关后存档记第二章，检查点清空", _disk().get("chapter") == "test_feel" and _disk().get("checkpoint") == "")
-
-		Game.to_title()
-		_check("回标题", await _until(func() -> bool: return Game.flow == Game.Flow.TITLE and get_tree().current_scene is Title))
-		_check("有存档：能继续", Game.can_continue())
-		Game.continue_game()
-		_check("继续：回到第二章", await _until(func() -> bool: return _playing(&"test_feel")))
-
-		_player().global_position = (_find(Exit) as Node2D).global_position
-		_check("最后一章通关：进终章", await _until(func() -> bool: return Game.flow == Game.Flow.CHASE and get_tree().current_scene is Finale and _player() != null))
+		# 一章章通关：中间每章下一章是同表里的下一个 id，最后一章进终章。
+		for i in _ids.size():
+			_player().global_position = (_find(Exit) as Node2D).global_position
+			if i + 1 < _ids.size():
+				_check("第 %d 章通关：进第 %d 章 %s" % [i + 1, i + 2, _ids[i + 1]], await _until(func() -> bool: return _playing(_ids[i + 1])))
+				_check("通关后存档记下一章，检查点清空", _disk().get("chapter") == String(_ids[i + 1]) and _disk().get("checkpoint") == "")
+			else:
+				_check("最后一章通关：进终章", await _until(func() -> bool: return Game.flow == Game.Flow.CHASE and get_tree().current_scene is Finale and _player() != null))
 		_check("进终章就写存档，从开头出发", _disk().get("chapter") == Game.FINALE_ID and _disk().get("checkpoint") == "")
+
 		var finale := get_tree().current_scene as Finale
 		await _until(func() -> bool: return finale.boss.state == Boss.State.CHASE)
 		# 复活会重新加载终章，下面只用记下来的 id 和位置。

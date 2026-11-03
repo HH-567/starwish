@@ -28,6 +28,7 @@ const CHAPTER_SCRIPT := "res://scripts/levels/chapter.gd"
 const FINALE_SCRIPT := "res://scripts/levels/finale.gd"
 ## 关卡区的地图、场景、根节点名、chapter_id、是否加暗处、回程赛道的地图。
 const LEVELS := [
+	["res://tools/ch0_map.txt", "res://scenes/levels/ch0_fall.tscn", "Ch0Fall", &"ch0", true, "res://tools/ch0_lane.txt"],
 	["res://tools/test_feel_map.txt", "res://scenes/levels/test_feel.tscn", "TestFeel", &"test_feel", false, "res://tools/test_feel_lane.txt"],
 	["res://tools/test_light_map.txt", "res://scenes/levels/test_light.tscn", "TestLight", &"test_light", true, "res://tools/test_light_lane.txt"],
 ]

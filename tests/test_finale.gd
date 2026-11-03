@@ -5,6 +5,12 @@ extends Node
 ## 直接运行终章场景（不经过标题，不写存档）。会换场景，所以测试逻辑放在挂到 root 下的 Runner 上。
 
 const PATH := "user://test_finale_save.json"
+## 终章的多段拼接要几段赛道才测得出来；正式章节还没做完，这里把两张测试关当章节用。
+## 正式章节齐了之后，这个测试改成直接跑 Game.CHAPTERS。
+const TEST_CHAPTERS := [
+	[&"test_light", "res://scenes/levels/test_light.tscn"],
+	[&"test_feel", "res://scenes/levels/test_feel.tscn"],
+]
 ## 自己跑的路线：[段, 列, 行]。段是 Intro、Outro 或章节 id，列和行是那一段地图里的格子。
 ## 小星一直往左，上下朝前面（左边）最近的那个路点所在的行靠。
 const ROUTE_NONE := [
@@ -34,6 +40,7 @@ class Runner extends Node:
 	func _ready() -> void:
 		Save.path = PATH
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
+		Game.chapters = TEST_CHAPTERS
 		Game.player_died.connect(func(_c: int) -> void: _deaths += 1)
 		Game.help_triggered.connect(func(role: StringName) -> void: _helps.append(role))
 		Game.checkpoint_reached.connect(func(id: String) -> void: _checkpoints.append(id))
@@ -263,7 +270,7 @@ class Runner extends Node:
 
 	func _npc_count() -> int:
 		var n := 0
-		for chapter: Array in Game.CHAPTERS:
+		for chapter: Array in Game.chapters:
 			var root := (load(chapter[1]) as PackedScene).instantiate()
 			n += root.find_children("*", "Npc", true, false).size()
 			root.free()

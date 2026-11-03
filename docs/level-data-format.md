@@ -247,14 +247,17 @@ save_id = `<chapter_id>/<从章节根到该节点的路径>`，例如 `ch1/Level
 
 调试版（`OS.is_debug_build()`）另有调试键：F2 亮度衰减开关，F3 调试面板，F4 重新读取 tuning.tres，F5 清空进度（已救、已碎、已烧、检查点）并重载。跳章的键等章节做出来再定。
 
-## 10. 测试关
+## 10. 关卡与测试关
 
-`tools/build_test_levels.tscn` 按文本地图生成，图例写在 `tools/build_test_levels.gd` 开头。生成的场景是章节结构（根上挂 chapter.gd，下面是 Level 和 ChaseLane），现在也是章节表里的两章：从标题"新的旅程"进去先打 test_light，出口通到 test_feel，test_feel 左上角的出口通到终章。终章场景也由它生成，正式的终章开头和结尾做好之前先用这一份。
+所有关卡都由 `tools/build_test_levels.tscn` 按文本地图生成，图例写在 `tools/build_test_levels.gd` 开头。生成的场景是章节结构（根上挂 chapter.gd，下面是 Level 和 ChaseLane），改地形改 `tools/` 下的 txt，不要在编辑器里改场景（下次生成会覆盖）。
 
-- `test_feel`：移动和撞墙手感，地图 `tools/test_feel_map.txt`，不加暗处。赛道 `tools/test_feel_lane.txt` 没有人帮忙：闸门、裂纹墙、错开的柱子。
-- `test_light`（现在的主场景）：光和各种实体，地图 `tools/test_light_map.txt`，加暗处，12 个职业都在。一种打法：守夜人 → 聚光烧影藤救园丁 → 玻璃窗后的医生照不到 → 烧影藤门 → 钟表匠、角落里的向导 → 潜望镜（拐角的斜玻璃挡住小星，只有聚光拐得过去）救画家 → 乐手和听众 → 检查点 → 长跑道冲到 4 档撞碎裂纹墙 → 矿工 → 隔着栅栏救锁匠，铁门打开 → 铁门后的科学家 → 虫洞回出生大厅 → 回头救铁门后的邮差，医生收到信 → 出口。一个都不救也能直接走到出口。
+正式章节一章一章接进 `game.gd` 的 `CHAPTERS`，接进去之前先用测试关把流程跑通。
+
+- `ch0_fall`（序章·坠落，已接进章节表）：地图 `tools/ch0_map.txt`，加暗处，守夜人一个人。出生房往东 4 格就是墙，按住方向键冲过去正好是阶段 2，撞一次扣 20 亮度——这一章就是用低价把"阶段 2 撞墙的代价"教掉；竖井里有一颗小星星补回来。全图没有加速带，WASD 最多到阶段 4，撞墙只反弹不碎。赛道 `tools/ch0_lane.txt`：常亮加速带、守夜人的路灯和盾。测试 `tests/test_ch0.tscn`。
+- `test_feel`：移动和撞墙手感，地图 `tools/test_feel_map.txt`，不加暗处。赛道 `tools/test_feel_lane.txt` 没有人帮忙：闸门、裂纹墙、错开的柱子。已不在章节表里，留作手感调试场。
+- `test_light`：光和各种实体，地图 `tools/test_light_map.txt`，加暗处，12 个职业都在。一种打法：守夜人 → 聚光烧影藤救园丁 → 玻璃窗后的医生照不到 → 烧影藤门 → 钟表匠、角落里的向导 → 潜望镜（拐角的斜玻璃挡住小星，只有聚光拐得过去）救画家 → 乐手和听众 → 检查点 → 长跑道冲到 4 档撞碎裂纹墙 → 矿工 → 隔着栅栏救锁匠，铁门打开 → 铁门后的科学家 → 虫洞回出生大厅 → 回头救铁门后的邮差，医生收到信 → 出口。一个都不救也能直接走到出口。已不在章节表里，但 `test_light_level` / `test_finale` 还拿它当多段赛道的样本。
   赛道 `tools/test_light_lane.txt` 里有各职业的帮助点：守夜人（路灯、盾）、医生、钟表匠、画家（光门跳过柱子阵）、园丁（花）、乐手和听众、矿工（隧道穿过一大块墙；没救他就从上面绕）。
-- 终章：开头 `tools/finale_intro.txt`、结尾 `tools/finale_outro.txt`。`tests/test_finale.tscn` 里小星按路线自己跑两遍：一个都没救跑到逃离点；全救了一路有人帮，最后冲进科学家的虫洞撞碎噬光者。
+- 终章：开头 `tools/finale_intro.txt`、结尾 `tools/finale_outro.txt`。`tests/test_finale.tscn` 里小星按路线自己跑两遍：一个都没救跑到逃离点；全救了一路有人帮，最后冲进科学家的虫洞撞碎噬光者。它把两张测试关固定成自己的章节表来测多段拼接；正式章节齐了以后改成直接跑 `Game.CHAPTERS`。
 
 ## 11. 速度靠地图
 
