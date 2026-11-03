@@ -31,6 +31,7 @@ const FINALE_SCRIPT := "res://scripts/levels/finale.gd"
 const LEVELS := [
 	["res://tools/ch0_map.txt", "res://scenes/levels/ch0_fall.tscn", "Ch0Fall", &"ch0", true, "res://tools/ch0_lane.txt"],
 	["res://tools/ch1_map.txt", "res://scenes/levels/ch1_vine.tscn", "Ch1Vine", &"ch1", true, "res://tools/ch1_lane.txt"],
+	["res://tools/ch2_map.txt", "res://scenes/levels/ch2_mirror.tscn", "Ch2Mirror", &"ch2", true, "res://tools/ch2_lane.txt"],
 	["res://tools/test_feel_map.txt", "res://scenes/levels/test_feel.tscn", "TestFeel", &"test_feel", false, "res://tools/test_feel_lane.txt"],
 	["res://tools/test_light_map.txt", "res://scenes/levels/test_light.tscn", "TestLight", &"test_light", true, "res://tools/test_light_lane.txt"],
 ]
@@ -70,9 +71,9 @@ const MARKERS := {"S": ["PlayerStart", 0.5], "Q": ["BossStart", 0.5], "R": ["Ent
 const PARTS := {"l": "watchman", "f": "gardener", "T": "miner"}
 const STRIP_ANGLE := {">": 0.0, "v": PI / 2.0, "<": PI, "^": -PI / 2.0}
 ## 这些一格一个实体，不和相邻的同种格子合并。
-const SINGLE := "/\\*Kl1234567"
+const SINGLE := "/\\*Kl12345678"
 ## 地图里的数字 → 提示牌的文字 id（scripts/data/hints.gd）。
-const HINTS := {"1": &"move", "2": &"light", "3": &"shard", "4": &"bump", "5": &"save", "6": &"vine", "7": &"glass"}
+const HINTS := {"1": &"move", "2": &"light", "3": &"shard", "4": &"bump", "5": &"save", "6": &"vine", "7": &"glass", "8": &"mirror"}
 
 func _ready() -> void:
 	var tiles := _load_or_make_tileset()

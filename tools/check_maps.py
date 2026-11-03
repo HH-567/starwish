@@ -78,34 +78,59 @@ def reachable(rows, start_cell, target_cell, vines_solid=False):
     return (tx, ty) in seen
 
 
-def check(name, path, start, targets, must_fail=()):
+## 每张地图查什么：起点、必须走得到的地方、必须走不进去的地方、虫洞两端（当作连通）。
+## 加新章节时在这里加一条。
+MAPS = [
+    {
+        "name": "ch0_fall",
+        "path": "tools/ch0_map.txt",
+        "start": (3, 20),
+        "reach": {"出口": (43, 7), "检查点": (31, 9), "守夜人": (38, 9), "竖井小星星": (4, 14)},
+    },
+    {
+        "name": "ch1_vine（影藤当作已经烧掉）",
+        "path": "tools/ch1_map.txt",
+        "start": (3, 22),
+        "reach": {"出口": (63, 20), "园丁的壁龛": (33, 15), "检查点": (44, 20), "玻璃房前": (52, 21)},
+        "miss": {"玻璃房里的医生": (53, 15)},
+    },
+    {
+        "name": "ch2_mirror（虫洞当作连通）",
+        "path": "tools/ch2_map.txt",
+        "start": (3, 22),
+        "reach": {"出口": (55, 20), "画家房": (35, 17), "向导": (22, 17), "检查点": (44, 21)},
+        "miss": {"画家的竖井": (40, 19)},
+        "wormholes": [((31, 20), (38, 20))],
+    },
+]
+
+
+def check(spec):
+    rows = load(spec["path"])
+    seen = walkable(rows, spec["start"])
+    for a, b in spec.get("wormholes", []):
+        # 两端都在能走到的地方，就算互相连通
+        if _sample(a) in seen or _sample(b) in seen:
+            seen |= walkable(rows, b)
+            seen |= walkable(rows, a)
     ok = True
-    rows = load(path)
-    for label, cell in targets.items():
-        got = reachable(rows, start, cell)
-        if not got:
-            print("FAIL", name, "走不到", label, cell)
+    for label, cell in spec.get("reach", {}).items():
+        if _sample(cell) not in seen:
+            print("FAIL", spec["name"], "走不到", label, cell)
             ok = False
-    for label, cell in must_fail:
-        if reachable(rows, start, cell):
-            print("FAIL", name, "不该走到却走到了", label, cell)
+    for label, cell in spec.get("miss", {}).items():
+        if _sample(cell) in seen:
+            print("FAIL", spec["name"], "不该走进去却走得进去", label, cell)
             ok = False
-    print("PASS" if ok else "FAIL", name)
+    print("PASS" if ok else "FAIL", spec["name"])
     return ok
 
 
+def _sample(cell):
+    return (int(((cell[0] + 0.5) * CELL) // STEP), int(((cell[1] + 0.5) * CELL) // STEP))
+
+
 ok = True
-ok &= check(
-    "ch0_fall",
-    "tools/ch0_map.txt",
-    (3, 20),
-    {"出口": (43, 7), "检查点": (31, 9), "守夜人": (38, 9), "竖井小星星": (4, 14)},
-)
-ok &= check(
-    "ch1_vine（影藤当作已经烧掉）",
-    "tools/ch1_map.txt",
-    (3, 22),
-    {"出口": (63, 20), "园丁的壁龛": (33, 15), "检查点": (44, 20), "玻璃房前": (52, 21)},
-    must_fail=[("玻璃房里的医生", (53, 15))],
-)
+for spec in MAPS:
+    ok = check(spec) and ok
 sys.exit(0 if ok else 1)
