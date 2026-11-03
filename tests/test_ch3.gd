@@ -54,8 +54,8 @@ func _walk() -> bool:
 	Input.action_release("move_up")
 	_check("铁门挡住去路", _player.global_position.y > 19.0 * 32.0, "y=%.0f" % _player.global_position.y)
 
-	# 加速带 + 长直道：阶段 4 撞碎裂纹墙。
-	_put(Vector2i(28, 20))
+	# 长直道：按住右跑到阶段 4，撞碎裂纹墙（关卡区没有加速带，WASD 自己能到阶段 4）。
+	_put(Vector2i(26, 20))
 	Input.action_press("move_right")
 	var reached := 0
 	for i in 300:
@@ -64,7 +64,7 @@ func _walk() -> bool:
 		if _broken > 0:
 			break
 	Input.action_release("move_right")
-	_check("加速带把速度推到阶段 4", reached >= 4, "最高阶段 %d" % reached)
+	_check("长直道把速度推到阶段 4", reached >= 4, "最高阶段 %d" % reached)
 	_check("阶段 4 撞碎裂纹墙", _broken == 1, "%d" % _broken)
 	_check("撞碎的墙写进存档", Save.broken.size() == 1)
 	_check("跑向裂纹墙的路上浮出提示", _hints.has(Hints.TEXT[&"crack"]), "%s" % [_hints])

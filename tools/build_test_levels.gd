@@ -27,13 +27,13 @@ const TILE := 32
 const TILES_PATH := "res://data/tiles.tres"
 const CHAPTER_SCRIPT := "res://scripts/levels/chapter.gd"
 const FINALE_SCRIPT := "res://scripts/levels/finale.gd"
-## 关卡区的地图、场景、根节点名、chapter_id、是否加暗处、回程赛道的地图、加速带的目标速度（可选）。
-## 关卡区的加速带默认不给 920：阶段 5 会撞碎黑墙，那会把关卡挖穿，只有终章的赛道才需要那个速度。
+## 关卡区的地图、场景、根节点名、chapter_id、是否加暗处、回程赛道的地图。
+## 关卡区不摆加速带：阶段 4（撞碎裂纹墙）靠长直道就够，阶段 5 只在终章赛道上出现。
 const LEVELS := [
 	["res://tools/ch0_map.txt", "res://scenes/levels/ch0_fall.tscn", "Ch0Fall", &"ch0", true, "res://tools/ch0_lane.txt"],
 	["res://tools/ch1_map.txt", "res://scenes/levels/ch1_vine.tscn", "Ch1Vine", &"ch1", true, "res://tools/ch1_lane.txt"],
 	["res://tools/ch2_map.txt", "res://scenes/levels/ch2_mirror.tscn", "Ch2Mirror", &"ch2", true, "res://tools/ch2_lane.txt"],
-	["res://tools/ch3_map.txt", "res://scenes/levels/ch3_crack.tscn", "Ch3Crack", &"ch3", true, "res://tools/ch3_lane.txt", 620.0],
+	["res://tools/ch3_map.txt", "res://scenes/levels/ch3_crack.tscn", "Ch3Crack", &"ch3", true, "res://tools/ch3_lane.txt"],
 	["res://tools/ch4_map.txt", "res://scenes/levels/ch4_pair.tscn", "Ch4Pair", &"ch4", true, "res://tools/ch4_lane.txt"],
 	["res://tools/test_feel_map.txt", "res://scenes/levels/test_feel.tscn", "TestFeel", &"test_feel", false, "res://tools/test_feel_lane.txt"],
 	["res://tools/test_light_map.txt", "res://scenes/levels/test_light.tscn", "TestLight", &"test_light", true, "res://tools/test_light_lane.txt"],
@@ -42,7 +42,7 @@ const FINALE_INTRO := "res://tools/finale_intro.txt"
 const FINALE_OUTRO := "res://tools/finale_outro.txt"
 ## 赛道和终章结尾放在上一块下面，中间空几行。
 const AREA_GAP := 4
-## 加速带默认推到多快：阶段 5（≥760）。赛道和终章用这个值。
+## 赛道加速带推到多快：阶段 5（≥760）。只有回程赛道才摆加速带。
 const STRIP_SPEED := 920.0
 const STRIP_SCENE := "res://scenes/entities/accel_strip.tscn"
 const MIRROR_SCENE := "res://scenes/entities/mirror.tscn"
@@ -145,10 +145,8 @@ func _build_chapter(tiles: TileSet, spec: Array) -> Error:
 	root.set_script(load(CHAPTER_SCRIPT))
 	root.set("chapter_id", spec[3])
 	root.set("dark", spec[4])
-	## 第七项是这一章加速带的目标速度，不给就是 920。正式章节给低一点，别让玩家在关卡里冲到阶段 5 挖穿地图。
-	var strip_speed := float(spec[6]) if spec.size() > 6 else STRIP_SPEED
 	var level := _area(root, root, "Level")
-	var rows := _build_area(root, level, tiles, spec[0], Kind.LEVEL, {}, strip_speed)
+	var rows := _build_area(root, level, tiles, spec[0], Kind.LEVEL, {})
 	# 赛道里的帮助点按职业找关卡区里的人。
 	var npcs := {}
 	for node in level.get_node(^"Entities").get_children():
@@ -156,7 +154,7 @@ func _build_chapter(tiles: TileSet, spec: Array) -> Error:
 			npcs[node.role] = node
 	var lane := _area(root, root, "ChaseLane")
 	lane.position = Vector2(0, (rows + AREA_GAP) * TILE)
-	_build_area(root, lane, tiles, spec[5], Kind.LANE, npcs, STRIP_SPEED)
+	_build_area(root, lane, tiles, spec[5], Kind.LANE, npcs)
 	return _save(root, spec[1])
 
 ## 终章：开头和结尾两块，中间的赛道运行时按章节表接上（scripts/levels/finale.gd）。
@@ -189,7 +187,7 @@ func _area(root: Node, parent: Node, area_name: String) -> Node2D:
 
 ## 按文本地图在 area 下铺墙（Walls）、摆实体（Entities）、放标记点。npcs 是关卡区里的人（职业 → 节点），
 ## 赛道里的帮助点指向他们。返回地图有几行。
-func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kind: Kind, npcs := {}, strip_speed := STRIP_SPEED) -> int:
+func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kind: Kind, npcs := {}) -> int:
 	var walls := TileMapLayer.new()
 	walls.name = "Walls"
 	walls.tile_set = tiles
@@ -234,7 +232,7 @@ func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kin
 		if kind == Kind.LANE and PARTS.has(ch):
 			parts.append([ch, rect])
 			continue
-		var node := _place(root, entities, ch, rect, kind, npcs, strip_speed)
+		var node := _place(root, entities, ch, rect, kind, npcs)
 		if node is HelpPoint:
 			helpers[node.role] = node
 		elif node != null and pairs.has(ch):
@@ -285,7 +283,7 @@ func _center(rect: Rect2i) -> Vector2:
 func _instance(path: String) -> Node2D:
 	return (load(path) as PackedScene).instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE) as Node2D
 
-func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs: Dictionary, strip_speed := STRIP_SPEED) -> Node2D:
+func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs: Dictionary) -> Node2D:
 	if ROLES.has(ch):
 		if kind == Kind.LEVEL:
 			return _place_npc(root, parent, ch, rect)
@@ -305,7 +303,7 @@ func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs
 		">", "<", "^", "v":
 			node.rotation = STRIP_ANGLE[ch]
 			node.set("size", size if ch == ">" or ch == "<" else Vector2(size.y, size.x))
-			node.set("target_speed", strip_speed)
+			node.set("target_speed", STRIP_SPEED)
 		"-":
 			node.set("length", size.x)
 		"|":
