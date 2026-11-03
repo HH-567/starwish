@@ -1,13 +1,25 @@
-; 星愿：撞碎长夜 —— Godot 4.3 工程配置
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
 
 [application]
 
 config/name="StarWish"
 config/description="星愿：撞碎长夜 / 俯视角 2D 跑酷解谜"
-run/main_scene="res://scenes/boot.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+run/main_scene="res://scenes/ui/title.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://assets/icon.svg"
+
+[autoload]
+
+Save="*res://scripts/autoload/save.gd"
+Game="*res://scripts/autoload/game.gd"
 
 [display]
 
@@ -20,8 +32,21 @@ window/stretch/aspect="expand"
 
 theme/custom="res://theme.tres"
 
+[layer_names]
+
+2d_physics/layer_1="world"
+2d_physics/layer_2="cracked"
+2d_physics/layer_3="mirror"
+2d_physics/layer_4="pad"
+2d_physics/layer_5="vine"
+2d_physics/layer_6="player"
+2d_physics/layer_7="trigger"
+2d_physics/layer_8="boss"
+2d_physics/layer_9="bars"
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.027451, 0.0431373, 0.0941176, 1)

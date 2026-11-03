@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/entities/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/entities/follow_camera.gd" id="2_camera"]
+[ext_resource type="Script" path="res://scripts/entities/star_light.gd" id="3_light"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_star"]
+radius = 10.0
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+script = ExtResource("1_player")
+
+[node name="Shape" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_star")
+
+[node name="Trail" type="Line2D" parent="."]
+show_behind_parent = true
+width = 14.0
+
+[node name="Glow" type="Sprite2D" parent="."]
+show_behind_parent = true
+
+[node name="Light" type="Node2D" parent="."]
+show_behind_parent = true
+script = ExtResource("3_light")
+
+[node name="Camera" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 7.0
+script = ExtResource("2_camera")
