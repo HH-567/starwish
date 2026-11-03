@@ -83,6 +83,15 @@ func _ready() -> void:
 		for i in 20:
 			await get_tree().physics_frame
 		_check("出来之后朝 +X 冲回去（阶段 5 的速度）", player.velocity.x > 0.0 and player.velocity.length() > 700.0, "%s" % player.velocity)
+		# 把噬光者摆到冲回来的路上：掉头撞碎它，进隐藏结局。
+		var shattered := false
+		for i in 120:
+			finale.boss.global_position = player.global_position + Vector2(30.0, 0.0)
+			await get_tree().physics_frame
+			if finale.boss.state == Boss.State.SHATTERED:
+				shattered = true
+				break
+		_check("掉头撞碎噬光者（隐藏结局）", shattered, "噬光者状态 %d" % finale.boss.state)
 
 	print("RESULT %s，失败 %d 项" % ["PASS" if _failures == 0 else "FAIL", _failures])
 	get_tree().quit(1 if _failures > 0 else 0)
