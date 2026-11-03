@@ -54,6 +54,13 @@ func _ready() -> void:
 	_check("检查点是五段赛道加结尾的 Entry", finale.entries.size() == lanes.size() + 1, "%d" % finale.entries.size())
 	_check("终章里有噬光者", get_tree().get_first_node_in_group(&"boss") != null)
 
+	# 屏幕上不写字：HUD 里除了调试面板（只有调试版显示）没有别的 Label。
+	var hud := finale.get_node_or_null(^"HUD")
+	var labels: Array[Node] = []
+	if hud != null:
+		labels.assign(hud.find_children("*", "Label", true, false))
+	_check("HUD 上只有调试面板一个 Label", hud != null and labels.size() == 1 and labels[0].name == "Debug", "%d 个" % labels.size())
+
 	var scientist: HelpPoint = null
 	for help: HelpPoint in finale.find_children("*", "HelpPoint", true, false):
 		if help.role == "scientist":

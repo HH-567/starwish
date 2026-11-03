@@ -10,7 +10,6 @@ const LEVEL := "res://scenes/levels/ch4_pair.tscn"
 var _failures := 0
 var _player: Player
 var _chapter: Chapter
-var _hints: Array[String] = []
 var _cleared := 0
 
 func _ready() -> void:
@@ -18,7 +17,6 @@ func _ready() -> void:
 	Game.debug_no_decay = true
 	Save.clear()
 	Game.chapter_cleared.connect(func(_c: StringName) -> void: _cleared += 1)
-	Game.hint_shown.connect(func(text: String) -> void: _hints.append(text))
 	await _load()
 	_check("从 PlayerStart 出生", _player.global_position.distance_to(_cell(Vector2i(3, 22))) < 1.0, "%s" % _player.global_position)
 	var finished: Variant = await _walk()
@@ -41,7 +39,6 @@ func _walk() -> bool:
 	# 结伴：只照到一个不算数，两个同时照到才一起得救。
 	_put(Vector2i(24, 19), Player.LightMode.SCATTER)
 	await _frames(6)
-	_check("走近音乐厅：浮出结伴的提示", _hints.has(Hints.TEXT[&"pair"]), "%s" % [_hints])
 	_put(Vector2i(26, 21), Player.LightMode.FOCUS, Vector2.UP)
 	await _frames(150)
 	_check("只照到乐手一个人：不得救", not _saved(&"musician") and not _saved(&"listener"))

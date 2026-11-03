@@ -14,8 +14,6 @@ signal checkpoint_reached(id: String)
 signal chapter_cleared(chapter_id: StringName)
 signal warped
 signal help_triggered(role: StringName)
-## 关卡里的提示牌：HUD 浮出一行字（scripts/entities/hint.gd）。
-signal hint_shown(text: String)
 signal boss_state_changed(state: int)
 signal debug_changed
 

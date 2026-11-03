@@ -10,7 +10,6 @@ const DOCTOR_ID := "ch1/Level/Entities/Npc2"
 
 var _failures := 0
 var _player: Player
-var _hints: Array[String] = []
 var _broken := 0
 var _cleared := 0
 var _postman: Npc
@@ -22,7 +21,6 @@ func _ready() -> void:
 	Save.mail[DOCTOR_ID] = &"doctor"
 	Game.wall_broken.connect(func(_id: String) -> void: _broken += 1)
 	Game.chapter_cleared.connect(func(_c: StringName) -> void: _cleared += 1)
-	Game.hint_shown.connect(func(text: String) -> void: _hints.append(text))
 	add_child((load(LEVEL) as PackedScene).instantiate())
 	_player = get_tree().get_first_node_in_group(&"player") as Player
 	_player.aim_from_mouse = false
@@ -67,7 +65,6 @@ func _walk() -> bool:
 	_check("长直道把速度推到阶段 4", reached >= 4, "最高阶段 %d" % reached)
 	_check("阶段 4 撞碎裂纹墙", _broken == 1, "%d" % _broken)
 	_check("撞碎的墙写进存档", Save.broken.size() == 1)
-	_check("跑向裂纹墙的路上浮出提示", _hints.has(Hints.TEXT[&"crack"]), "%s" % [_hints])
 
 	# 矿工在墙后面。
 	_put(Vector2i(47, 22))

@@ -7,7 +7,6 @@ const LEVEL := "res://scenes/levels/ch1_vine.tscn"
 
 var _failures := 0
 var _player: Player
-var _hints: Array[String] = []
 var _burnt := 0
 var _cleared := 0
 
@@ -17,7 +16,6 @@ func _ready() -> void:
 	Save.clear()
 	Game.vine_burnt.connect(func(_id: String) -> void: _burnt += 1)
 	Game.chapter_cleared.connect(func(_c: StringName) -> void: _cleared += 1)
-	Game.hint_shown.connect(func(text: String) -> void: _hints.append(text))
 	add_child((load(LEVEL) as PackedScene).instantiate())
 	_player = get_tree().get_first_node_in_group(&"player") as Player
 	_player.aim_from_mouse = false
@@ -50,7 +48,6 @@ func _walk() -> bool:
 	await _frames(120)
 	_check("聚光烧断影藤门", _burnt == 1, "%d" % _burnt)
 	_check("烧掉的影藤写进存档", Save.burnt.size() == 1)
-	_check("走到影藤跟前：浮出影藤的提示", _hints.has(Hints.TEXT[&"vine"]), "%s" % [_hints])
 
 	# 园丁封在影藤后面：先烧开，再照亮。
 	_put(Vector2i(33, 19), Player.LightMode.SCATTER)
@@ -65,7 +62,6 @@ func _walk() -> bool:
 	# 玻璃房：外面照不进去，也走不进去，医生记进等邮差的名单。
 	_put(Vector2i(50, 21), Player.LightMode.SCATTER)
 	await _frames(6)
-	_check("走到玻璃窗前：浮出玻璃的提示", _hints.has(Hints.TEXT[&"glass"]))
 	_put(Vector2i(53, 21), Player.LightMode.FOCUS, Vector2.UP)
 	await _frames(140)
 	_check("玻璃房里的医生照不到", not _saved(&"doctor"))

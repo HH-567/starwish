@@ -4,6 +4,12 @@ extends Node
 ## 每个镜头的帧编号会打印出来。录完自动退出。
 
 const PATH := "user://shots_finale_save.json"
+## 截图用的章节表：拿两张测试关的赛道来拍多段拼接（和 tests/test_finale.gd 一样）。
+## 正式章节的赛道也能拍，但那要另写一套格子坐标。
+const TEST_CHAPTERS := [
+	[&"test_light", "res://scenes/levels/test_light.tscn"],
+	[&"test_feel", "res://scenes/levels/test_feel.tscn"],
+]
 ## 镜头：名字、段（Intro、Outro 或章节 id）、列、行、噬光者摆在小星右边多远（0 = 不动它）、先停多少帧。
 const POSES := [
 	["守夜人和路灯", "test_light", 121, 8, 0.0, 40],
@@ -24,6 +30,7 @@ func _ready() -> void:
 class Runner extends Node:
 	func _ready() -> void:
 		Save.path = PATH
+		Game.chapters = TEST_CHAPTERS
 		Game.debug_panel = false
 		Game.debug_no_decay = true
 		Save.clear()

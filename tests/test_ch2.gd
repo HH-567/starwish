@@ -7,7 +7,6 @@ const LEVEL := "res://scenes/levels/ch2_mirror.tscn"
 
 var _failures := 0
 var _player: Player
-var _hints: Array[String] = []
 var _warps := 0
 var _arrived := Vector2.ZERO
 var _cleared := 0
@@ -20,7 +19,6 @@ func _ready() -> void:
 		_warps += 1
 		_arrived = _player.global_position)
 	Game.chapter_cleared.connect(func(_c: StringName) -> void: _cleared += 1)
-	Game.hint_shown.connect(func(text: String) -> void: _hints.append(text))
 	add_child((load(LEVEL) as PackedScene).instantiate())
 	_player = get_tree().get_first_node_in_group(&"player") as Player
 	_player.aim_from_mouse = false
@@ -63,7 +61,6 @@ func _walk() -> bool:
 	_put(Vector2i(36, 17), Player.LightMode.FOCUS, Vector2.RIGHT)
 	await _frames(150)
 	_check("对着斜玻璃照：反射光照到画家", _saved(&"painter"))
-	_check("走到斜玻璃前：浮出反射的提示", _hints.has(Hints.TEXT[&"mirror"]), "%s" % [_hints])
 
 	# 检查点、出口。
 	_put(Vector2i(44, 21), Player.LightMode.SCATTER)

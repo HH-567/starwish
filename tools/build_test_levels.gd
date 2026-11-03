@@ -11,7 +11,7 @@ extends Node
 ##   小人（一格一个）：n 普通人  w 守夜人  g 园丁  d 医生（照不到，等邮差）  a 画家  G 向导  m 矿工
 ##     L 锁匠  M 邮差（藏着）  p 乐手  q 听众（每个 p 和离它最近的 q 结伴）  c 钟表匠  Z 科学家（藏着）
 ##   * 小星星  K 检查点  A B 虫洞两端（每张图一对）  + 流星  = 黑洞（P2）
-##   1–5 提示牌：走进来浮出一行字，文字见 scripts/data/hints.gd
+##   ' 路标：一点冷白色的小光点，只用来引路（教学关铺路用）
 ## 回程赛道（*_lane.txt，生成在关卡区下面，从右往左跑）：
 ##   R 进入点（最右一列，记在格子右边缘）  X 离开点（最左一列，记在格子左边缘），两个在同一行
 ##   小人的字母 = 帮助点，指向关卡区里同职业的那个人
@@ -49,7 +49,6 @@ const MIRROR_SCENE := "res://scenes/entities/mirror.tscn"
 const NPC_SCENE := "res://scenes/entities/npc.tscn"
 const WORMHOLE_SCENE := "res://scenes/entities/wormhole.tscn"
 const HELP_SCENE := "res://scenes/entities/help_point.tscn"
-const HINT_SCENE := "res://scenes/entities/hint.tscn"
 const LAMP_SCENE := "res://scenes/entities/lamp.tscn"
 const TUNNEL_SCENE := "res://scenes/entities/tunnel.tscn"
 const ESCAPE_SCENE := "res://scenes/entities/escape_point.tscn"
@@ -64,6 +63,7 @@ const SCENES := {
 	"K": "res://scenes/entities/checkpoint.tscn",
 	">": STRIP_SCENE, "<": STRIP_SCENE, "^": STRIP_SCENE, "v": STRIP_SCENE,
 	"-": MIRROR_SCENE, "|": MIRROR_SCENE, "/": MIRROR_SCENE, "\\": MIRROR_SCENE,
+	"'": "res://scenes/entities/breadcrumb.tscn",
 	"+": "res://scenes/entities/meteor.tscn",
 	"=": "res://scenes/entities/blackhole.tscn",
 }
@@ -78,9 +78,7 @@ const MARKERS := {"S": ["PlayerStart", 0.5], "Q": ["BossStart", 0.5], "R": ["Ent
 const PARTS := {"l": "watchman", "f": "gardener", "T": "miner"}
 const STRIP_ANGLE := {">": 0.0, "v": PI / 2.0, "<": PI, "^": -PI / 2.0}
 ## 这些一格一个实体，不和相邻的同种格子合并。
-const SINGLE := "/\\*Kl1234567890+="
-## 地图里的数字 → 提示牌的文字 id（scripts/data/hints.gd）。
-const HINTS := {"1": &"move", "2": &"light", "3": &"shard", "4": &"bump", "5": &"save", "6": &"vine", "7": &"glass", "8": &"mirror", "9": &"crack", "0": &"pair"}
+const SINGLE := "/\\*Kl+='"
 
 func _ready() -> void:
 	var tiles := _load_or_make_tileset()
@@ -288,12 +286,6 @@ func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs
 		if kind == Kind.LEVEL:
 			return _place_npc(root, parent, ch, rect)
 		return _place_help(root, parent, ch, rect, kind, npcs)
-	if HINTS.has(ch):
-		var hint := _instance(HINT_SCENE) as Hint
-		hint.hint_id = HINTS[ch]
-		hint.position = _center(rect)
-		_add(root, parent, hint)
-		return hint
 	if not SCENES.has(ch):
 		push_error("未知图例 %s，位置 %s" % [ch, rect.position])
 		return null

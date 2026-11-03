@@ -43,23 +43,41 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	# 自己不接收鼠标/触摸：摇杆在 _input 里统一处理，按钮是子节点、各自收自己的。
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_light = Button.new()
-	_light.name = "LightButton"
-	_light.text = "光"
-	_light.focus_mode = Control.FOCUS_NONE
-	_light.custom_minimum_size = Vector2(88, 88)
-	_light.add_theme_font_size_override("font_size", 32)
-	add_child(_light)
+	_light = _icon_button("LightButton", Vector2(88, 88), _draw_sun)
 	_light.pressed.connect(func() -> void: Controls.request_mode_toggle())
-	var pause := Button.new()
-	pause.name = "PauseButton"
-	pause.text = "≡"
-	pause.focus_mode = Control.FOCUS_NONE
-	pause.custom_minimum_size = Vector2(64, 64)
-	pause.add_theme_font_size_override("font_size", 28)
-	add_child(pause)
+	var pause := _icon_button("PauseButton", Vector2(64, 64), _draw_bars)
 	pause.pressed.connect(func() -> void: Game.toggle_pause())
 	visible = Controls.touch
+
+## 按钮里不写字：图标是画上去的（太阳 = 换光，三道横线 = 暂停）。
+func _icon_button(node_name: String, box: Vector2, painter: Callable) -> Button:
+	var button := Button.new()
+	button.name = node_name
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = box
+	add_child(button)
+	var icon := Control.new()
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+	icon.draw.connect(func() -> void: painter.call(icon, icon.size))
+	button.add_child(icon)
+	return button
+
+func _draw_sun(item: CanvasItem, box: Vector2) -> void:
+	var c := Color(1.0, 0.9, 0.5, 0.9)
+	var center := box * 0.5
+	var r := minf(box.x, box.y) * 0.18
+	item.draw_circle(center, r, c)
+	for k in 8:
+		var d := Vector2.from_angle(TAU * k / 8.0)
+		item.draw_line(center + d * r * 1.7, center + d * r * 2.9, c, 3.0)
+
+func _draw_bars(item: CanvasItem, box: Vector2) -> void:
+	var c := Color(0.85, 0.92, 1.0, 0.85)
+	var center := box * 0.5
+	for k in 3:
+		var y := center.y + (k - 1) * 9.0
+		item.draw_line(Vector2(center.x - 14.0, y), Vector2(center.x + 14.0, y), c, 3.5)
 
 func _process(_delta: float) -> void:
 	# 暂停时不显示：暂停菜单的按钮要能点（触屏也是靠模拟鼠标点按钮的）。

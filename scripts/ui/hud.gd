@@ -1,54 +1,15 @@
 extends CanvasLayer
-## HUD：右上角速度阶段、终章里噬光者在屏幕外时的方向、帮助触发时浮出的一行字是正式 UI；
-## 左上角调试面板只在调试版显示，F3 开关。
-
-## 帮助触发时说一句他做了什么（docs/state-machines.md 第 18 节）。
-const HELP_TEXT := {
-	&"watchman": "守夜人点亮了路灯，替你挡一次",
-	&"gardener": "园丁的花开了",
-	&"doctor": "医生让你的光回满了",
-	&"painter": "画家画了一扇光门",
-	&"miner": "矿工挖开了隧道",
-	&"musician": "乐手的声波震退了噬光者",
-	&"listener": "听众跟着节拍为你加油",
-	&"clockmaker": "钟表匠让噬光者慢了下来",
-	&"scientist": "科学家打开了虫洞：以阶段 5 冲进去，掉头撞碎它",
-}
-const TOAST_TIME := 2.5
-## 关卡里的提示牌停留久一点，够读完一句话。
-const HINT_TIME := 4.0
-
-var _toast: Label
-var _toast_left := 0.0
+## HUD：右上角速度阶段、终章里噬光者在屏幕外时的方向。
+## 屏幕上不写字：帮助的效果都发生在世界里（路灯一盏盏亮、花开、光门出现、隧道打开、噬光者被震退），
+## HUD 只保留这两个非文字的指示。左上角调试面板只在调试版显示，F3 开关。
+## 测试会检查这里除了调试面板没有别的 Label——加提示文字之前先想清楚。
 
 @onready var _debug: Label = $Debug
 
 func _ready() -> void:
 	_debug.position = Vector2(16, 12)
-	_toast = Menu.label("", 26, Color("ffe9b0"))
-	_toast.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	# 放在屏幕最上面：赛道比屏幕矮，这里一般是赛道外的暗处。
-	_toast.offset_top = 36.0
-	_toast.modulate.a = 0.0
-	add_child(_toast)
-	Game.help_triggered.connect(_on_help_triggered)
-	Game.hint_shown.connect(_on_hint_shown)
 
-func _on_help_triggered(role: StringName) -> void:
-	if HELP_TEXT.has(role):
-		_show(HELP_TEXT[role], TOAST_TIME)
-
-func _on_hint_shown(text: String) -> void:
-	if not text.is_empty():
-		_show(text, HINT_TIME)
-
-func _show(text: String, time: float) -> void:
-	_toast.text = text
-	_toast_left = time
-
-func _process(delta: float) -> void:
-	_toast_left = maxf(_toast_left - delta, 0.0)
-	_toast.modulate.a = clampf(_toast_left / 0.5, 0.0, 1.0)
+func _process(_delta: float) -> void:
 	_debug.visible = OS.is_debug_build() and Game.debug_panel
 	if not _debug.visible:
 		return
