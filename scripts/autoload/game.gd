@@ -37,12 +37,13 @@ const _MOUSE_ACTIONS := {
 }
 
 const TUNING_PATH := "res://data/tuning.tres"
-## 章节顺序。正式章节做好一章就接一章：现在有ch0、ch1、ch2，ch3、ch4 做好后依次加进来，测试关不再进这张表。
+## 章节顺序。正式章节做好一章就接一章：现在有 ch0–ch3，ch4 做好后加进来，测试关不再进这张表。
 ## 终章按倒序接上各章的回程赛道。
 const CHAPTERS := [
 	[&"ch0", "res://scenes/levels/ch0_fall.tscn"],
 	[&"ch1", "res://scenes/levels/ch1_vine.tscn"],
 	[&"ch2", "res://scenes/levels/ch2_mirror.tscn"],
+	[&"ch3", "res://scenes/levels/ch3_crack.tscn"],
 ]
 ## 终章：最后一章通关后进。它不在章节表里，存档里的 chapter 记成 "finale"。
 const FINALE_ID := "finale"
