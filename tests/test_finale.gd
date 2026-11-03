@@ -35,6 +35,8 @@ class Runner extends Node:
 	var _failures := 0
 	var _deaths := 0
 	var _helps: Array[StringName] = []
+	## 追逐里噬光者贴得最近时的距离，用来说明"没帮助时有多险"。
+	var _min_gap := 99999.0
 	var _checkpoints: Array[String] = []
 
 	func _ready() -> void:
@@ -174,7 +176,8 @@ class Runner extends Node:
 		_deaths = 0
 		await _autopilot(ROUTE_NONE)
 		_check("一个都没救：自己跑到逃离点，正常结局", await _until(_in_ending, 200) and Game.ending == &"main")
-		_check("一个都没救：一路没死", _deaths == 0, "死了 %d 次" % _deaths)
+		_check("一个都没救：一路没死", _deaths == 0, "死了 %d 次，噬光者最近 %.0f px" % [_deaths, _min_gap])
+		print("NOHELP_MIN_GAP %.0f" % _min_gap)
 
 		# 全救了：一路有人帮，最后从科学家的虫洞掉头撞碎噬光者。
 		_rescue_all()
@@ -199,6 +202,7 @@ class Runner extends Node:
 
 	## 小星自己跑：一直按左，上下朝前面最近的路点那一行靠，直到进结局或超时。死了重来就接着跑。
 	func _autopilot(route: Array, max_seconds := 60.0) -> void:
+		_min_gap = 99999.0
 		Input.action_press("move_left")
 		var finale: Finale = null
 		var points: Array[Vector2] = []
@@ -211,6 +215,9 @@ class Runner extends Node:
 			if not is_instance_valid(finale) or _finale() != finale:
 				finale = _finale()
 				points = _route(finale, route)
+			var boss := finale.boss
+			if boss != null and boss.state == Boss.State.CHASE:
+				_min_gap = minf(_min_gap, boss.gap())
 			var p := finale.player
 			if p.state != Player.State.ACTIVE:
 				_steer(0)

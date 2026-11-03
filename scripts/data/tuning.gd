@@ -86,16 +86,17 @@ extends Resource
 @export var warp_cooldown := 0.3
 
 @export_group("追逐")
-## 噬光者沿轨迹追的速度：比 WASD 能到的最快（759）快，比赛道加速带（920）慢，只有靠加速带才能拉开。
-@export var boss_speed := 790.0
+## 噬光者沿轨迹追的速度：比 WASD 能到的最快（759）快得多，也快过加速带衰减后的平均速度——
+## 不救人的话只有把每段赛道的加速带都用满才拉得开，差一点就被追上（docs 第 18 节）。
+@export var boss_speed := 870.0
 ## 出现时在小星身后多远（沿轨迹）。
-@export var boss_gap_start := 500.0
+@export var boss_gap_start := 380.0
 ## 沿轨迹落后超过这么远时提速跟上。
 @export var boss_gap_max := 900.0
 ## 跟不上时提到多快。
 @export var boss_catch_speed := 1100.0
 ## 碰到小星时每秒吸走的亮度。
-@export var boss_drain := 80.0
+@export var boss_drain := 110.0
 ## 终章里复活时小星的初速（阶段 4），朝左。
 @export var chase_respawn_speed := 600.0
 

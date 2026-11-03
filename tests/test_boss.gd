@@ -84,7 +84,7 @@ func _cases() -> bool:
 	for i in 60:
 		await get_tree().physics_frame
 		if i == 20:
-			_check("还没到拐角时，距离按轨迹算，比直线远", _boss.global_position.x > corner.x and _boss.gap() > _boss.global_position.distance_to(_player.global_position) + 50.0, "%.1f / %.1f" % [_boss.gap(), _boss.global_position.distance_to(_player.global_position)])
+			_check("还没到拐角时，距离按轨迹算，比直线远", _boss.global_position.x > corner.x and _boss.gap() > _boss.global_position.distance_to(_player.global_position) + 20.0, "%.1f / %.1f" % [_boss.gap(), _boss.global_position.distance_to(_player.global_position)])
 		if _boss.global_position.x > corner.x + step:
 			off_line = maxf(off_line, absf(_boss.global_position.y))
 		nearest = minf(nearest, _boss.global_position.distance_to(corner))
