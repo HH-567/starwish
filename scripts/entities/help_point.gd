@@ -36,6 +36,7 @@ func _ready() -> void:
 	if not is_present():
 		queue_free()
 		return
+	add_to_group(&"help_point")
 	material = Lighting.unshaded()
 	collision_layer = Layers.TRIGGER
 	collision_mask = Layers.PLAYER
