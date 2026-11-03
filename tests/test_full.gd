@@ -59,12 +59,30 @@ func _ready() -> void:
 		if help.role == "scientist":
 			scientist = help
 	_check("全救出：科学家的帮助点出现", scientist != null and scientist.everyone)
+	var worm: Wormhole = null
 	if scientist != null:
-		var worm: Wormhole = null
 		for node in scientist.find_children("*", "Wormhole", true, false):
 			worm = node as Wormhole
 		_check("科学家放下掉头的虫洞", worm != null and worm.charge and not worm.keep_direction)
 	_check("结尾的逃离点还在", finale.find_children("*", "EscapePoint", true, false).size() == 1)
+
+	# 隐藏结局的入口真的能用：以阶段 5 钻进科学家的虫洞，出来时被 charge、朝来路冲回去。
+	if worm != null:
+		# 等噬光者开始追、小星解锁，才能进虫洞（WARP 只从 ACTIVE 进）。
+		for i in 600:
+			await get_tree().physics_frame
+			if finale.boss.state == Boss.State.CHASE and finale.player.state == Player.State.ACTIVE:
+				break
+		var player := finale.player
+		var entry := worm.get_node(^"A") as Node2D
+		player.velocity = Vector2(920.0, 0.0)
+		player.global_position = entry.global_position
+		for i in 6:
+			await get_tree().physics_frame
+		_check("钻进科学家的虫洞：被 charge", player.charged, "状态 %s" % Player.State.keys()[player.state])
+		for i in 20:
+			await get_tree().physics_frame
+		_check("出来之后朝 +X 冲回去（阶段 5 的速度）", player.velocity.x > 0.0 and player.velocity.length() > 700.0, "%s" % player.velocity)
 
 	print("RESULT %s，失败 %d 项" % ["PASS" if _failures == 0 else "FAIL", _failures])
 	get_tree().quit(1 if _failures > 0 else 0)

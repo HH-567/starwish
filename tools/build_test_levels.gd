@@ -10,7 +10,7 @@ extends Node
 ##   - | 玻璃（横、竖，相连的合成一块）  / \ 斜 45° 的玻璃，一格一块，正好封住一个拐角
 ##   小人（一格一个）：n 普通人  w 守夜人  g 园丁  d 医生（照不到，等邮差）  a 画家  G 向导  m 矿工
 ##     L 锁匠  M 邮差（藏着）  p 乐手  q 听众（每个 p 和离它最近的 q 结伴）  c 钟表匠  Z 科学家（藏着）
-##   * 小星星  K 检查点  A B 虫洞两端（每张图一对）
+##   * 小星星  K 检查点  A B 虫洞两端（每张图一对）  + 流星  = 黑洞（P2）
 ##   1–5 提示牌：走进来浮出一行字，文字见 scripts/data/hints.gd
 ## 回程赛道（*_lane.txt，生成在关卡区下面，从右往左跑）：
 ##   R 进入点（最右一列，记在格子右边缘）  X 离开点（最左一列，记在格子左边缘），两个在同一行
@@ -64,6 +64,8 @@ const SCENES := {
 	"K": "res://scenes/entities/checkpoint.tscn",
 	">": STRIP_SCENE, "<": STRIP_SCENE, "^": STRIP_SCENE, "v": STRIP_SCENE,
 	"-": MIRROR_SCENE, "|": MIRROR_SCENE, "/": MIRROR_SCENE, "\\": MIRROR_SCENE,
+	"+": "res://scenes/entities/meteor.tscn",
+	"=": "res://scenes/entities/blackhole.tscn",
 }
 ## 小人的图例 → 职业。
 const ROLES := {
@@ -76,7 +78,7 @@ const MARKERS := {"S": ["PlayerStart", 0.5], "Q": ["BossStart", 0.5], "R": ["Ent
 const PARTS := {"l": "watchman", "f": "gardener", "T": "miner"}
 const STRIP_ANGLE := {">": 0.0, "v": PI / 2.0, "<": PI, "^": -PI / 2.0}
 ## 这些一格一个实体，不和相邻的同种格子合并。
-const SINGLE := "/\\*Kl1234567890"
+const SINGLE := "/\\*Kl1234567890+="
 ## 地图里的数字 → 提示牌的文字 id（scripts/data/hints.gd）。
 const HINTS := {"1": &"move", "2": &"light", "3": &"shard", "4": &"bump", "5": &"save", "6": &"vine", "7": &"glass", "8": &"mirror", "9": &"crack", "0": &"pair"}
 

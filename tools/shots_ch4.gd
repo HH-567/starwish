@@ -8,6 +8,8 @@ const LEVEL := "res://scenes/levels/ch4_pair.tscn"
 const POSES := [
 	[Vector2i(3, 22), 0, Vector2.RIGHT, 30],
 	[Vector2i(27, 20), 0, Vector2.UP, 130],       # 两人中间：一起得救
+	[Vector2i(34, 20), 0, Vector2.RIGHT, 40],     # 黑洞
+	[Vector2i(41, 20), 0, Vector2.RIGHT, 110],    # 流星预警圈
 	[Vector2i(50, 18), 0, Vector2.DOWN, 120],     # 钟表匠
 	[Vector2i(55, 18), 0, Vector2.RIGHT, 30],     # 铁门
 	[Vector2i(61, 22), 0, Vector2.RIGHT, 30],     # 出口

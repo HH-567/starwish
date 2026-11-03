@@ -127,13 +127,21 @@ INACTIVE →（小星进入）ACTIVE：写存档 `checkpoint`，只记最新的�
 
 没有状态。小星顺着带的方向进入（夹角小于 90°）时，沿带方向的速度提到至少 `target_speed`，可以超过 WASD 上限，但不超过 `max_speed`。园丁的花也是加速带（画成花），挂在他的帮助点下面：园丁没救就不出现。
 
-## 10. 流星（Meteor，P2）
+## 10. 流星（Meteor）
 
-IDLE → WARNING（地上出现红圈，持续 `warn_time`）→ IMPACT（只判定一帧：圈内的小星按阶段 2 撞墙扣亮度）→ COOLDOWN（`interval`）→ WARNING。
+已实现（`scripts/entities/meteor.gd`）。IDLE → WARNING（地上出现红圈，持续 `warn_time`）→ IMPACT（只判定一帧：圈内的小星按阶段 2 撞墙扣亮度）→ COOLDOWN（`interval`）→ WARNING。
 
-## 11. 黑洞（BlackHole，P2）
+- 每个流星节点自己带 `interval`（默认 2.6 秒）、`warn_time`（1.1 秒）、`radius`（80 px），在编辑器里按关卡需要调，不放进 tuning。
+- 判定用 `玩家位置到圈心 <= radius + 小星半径`；砸中走 `Player.blast(s2_damage)`，和阶段 2 撞墙同一套代价（亮度不够会碎）。
+- 落地一律发 `player_hit("meteor")`（有落地声），圈外只是不掉亮度。
 
-没有状态。半径内给小星一个指向中心的加速度 `strength ÷ max(距离, 最小距离)`，弹弓效果由物理自然产生。
+## 11. 黑洞（BlackHole）
+
+已实现（`scripts/entities/blackhole.gd`）。没有状态。半径内给小星一个指向中心的加速度 `strength ÷ max(距离, 最小距离)`，弹弓效果由物理自然产生。
+
+- 每个黑洞节点自己带 `radius`（默认 200）和 `strength`（默认 48000：半径边缘约 200 px/s²，贴脸封顶 1200），`min_distance` 默认 40。
+- 这个加速度每帧写进 `Player.push`，由 `step_velocity` 在**松手减速之后**叠上去再清空。直接改 velocity 的话会被 `coast_decel` 抹掉，人根本吸不动——这个坑踩过。
+- 外部推力不受 WASD 上限约束，所以能被甩到比 759 更快（只到 `max_speed`），之后按 `overspeed_decay` 回落。
 
 ## 12. 噬光者（Boss）
 

@@ -42,6 +42,8 @@ var hurt_left := 0.0
 var grace_left := 0.0
 ## 守夜人给的盾：挡掉下一次噬光者的接触。
 var shield := false
+## 这一帧的外部加速度（黑洞之类每帧往里加），step_velocity 最后叠上再清掉。
+var push := Vector2.ZERO
 ## 刚从科学家的虫洞出来：一路冲回去，这时以阶段 5 撞上噬光者能把它撞碎。
 var charged := false
 var charge_left := 0.0
@@ -109,6 +111,19 @@ func drain(amount: float) -> void:
 	if light <= 0.0:
 		_die(Death.DRAINED)
 
+## 流星砸中（docs/state-machines.md 第 10 节）：和阶段 2 撞墙一样的代价，但没有反弹。
+func blast(amount: float) -> void:
+	if state != State.ACTIVE or hurt_left > 0.0:
+		return
+	if light <= amount:
+		light = 0.0
+		_die(Death.SHATTERED)
+		return
+	light -= amount
+	hurt_left = Game.tuning.hurt_iframes
+	Game.light_changed.emit(light, light_max)
+	_hit(&"hurt")
+
 ## 科学家的虫洞调用：charge_time 秒内一路冲回去。噬光者碰到它时不管碎没碎都会用掉。
 func charge() -> void:
 	charged = true
@@ -164,6 +179,7 @@ func _on_npc_rescued(_id: String) -> void:
 	Game.light_changed.emit(light, light_max)
 
 ## 一帧的速度变化：加速、刹车、松手减速、WASD 上限、超速回落、封顶。
+## 最后再叠上外部的推力（黑板的吸引之类）：不叠的话松手减速会把它抹掉。
 func step_velocity(v: Vector2, input: Vector2, delta: float) -> Vector2:
 	var t := Game.tuning
 	var old_speed := v.length()
@@ -181,7 +197,12 @@ func step_velocity(v: Vector2, input: Vector2, delta: float) -> Vector2:
 			acc = dir * along + side * t.turn_mult
 		v += acc * delta
 	var allowed := maxf(Game.input_limit(), old_speed - t.overspeed_decay * delta)
-	return v.limit_length(minf(allowed, t.max_speed))
+	v = v.limit_length(minf(allowed, t.max_speed))
+	if push != Vector2.ZERO:
+		# 外部推力不受 WASD 上限约束，所以能被黑洞甩得比平常更快（弹弓）。
+		v = (v + push * delta).limit_length(t.max_speed)
+		push = Vector2.ZERO
+	return v
 
 ## 带回差的阶段判定（docs/state-machines.md 2.2）。回差偏向安全：阶段 2 晚进早出。
 func stage_for(speed: float, current: int) -> int:
