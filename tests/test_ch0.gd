@@ -19,7 +19,7 @@ func _ready() -> void:
 	add_child((load(LEVEL) as PackedScene).instantiate())
 	_player = get_tree().get_first_node_in_group(&"player") as Player
 	_player.aim_from_mouse = false
-	_check("从 PlayerStart 出生", _player.global_position.distance_to(_cell(Vector2i(3, 20))) < 1.0, "%s" % _player.global_position)
+	_check("从 PlayerStart 出生", _player.global_position.distance_to(_cell(Vector2i(3, 24))) < 1.0, "%s" % _player.global_position)
 	# 屏幕上不写字，靠路标引路：序章沿路铺了一串小光点，它们只是画面、没有碰撞。
 	var crumbs := get_tree().current_scene.find_children("*", "Breadcrumb", true, false)
 	_check("序章铺了路标引路", crumbs.size() >= 5, "%d 个" % crumbs.size())
@@ -55,20 +55,20 @@ func _walk() -> bool:
 
 	# 竖井里的小星星：碰到回 shard_amount。
 	var low := _player.light
-	_put(Vector2i(4, 15))
+	_put(Vector2i(4, 19))
 	Input.action_press("move_up")
 	await _frames(30)
 	Input.action_release("move_up")
 	_check("竖井：捡到小星星回亮度", _player.light > low, "%.0f → %.0f" % [low, _player.light])
 
 	# 守夜人：散射照 2 秒。
-	_put(Vector2i(36, 9))
+	_put(Vector2i(22, 3))
 	await _frames(140)
 	_check("照亮守夜人", _saved(&"watchman"))
 	_check("救到人：亮度上限 +light_per_rescue 并回满", is_equal_approx(_player.light, _player.light_max) and is_equal_approx(_player.light_max, Game.tuning.light_base + Game.tuning.light_per_rescue), "%.0f / %.0f" % [_player.light, _player.light_max])
 
 	# 检查点：走进去就记下。
-	_put(Vector2i(31, 9))
+	_put(Vector2i(24, 11))
 	await _frames(10)
 	_check("走到检查点：存档记下它", Save.checkpoint == "ch0/Level/Entities/Checkpoint", Save.checkpoint)
 

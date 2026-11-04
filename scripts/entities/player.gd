@@ -199,8 +199,10 @@ func step_velocity(v: Vector2, input: Vector2, delta: float) -> Vector2:
 	var allowed := maxf(Game.input_limit(), old_speed - t.overspeed_decay * delta)
 	v = v.limit_length(minf(allowed, t.max_speed))
 	if push != Vector2.ZERO:
-		# 外部推力不受 WASD 上限约束，所以能被黑洞甩得比平常更快（弹弓）。
-		v = (v + push * delta).limit_length(t.max_speed)
+		# 外部推力（黑洞）不受 WASD 上限约束，但**只在终章**才允许甩过阶段 4 的顶：
+		# 关卡里能冲到阶段 5 的话，玩家会一路撞碎黑墙把关卡挖穿。
+		var cap := t.max_speed if Game.flow == Game.Flow.CHASE else Game.input_limit()
+		v = (v + push * delta).limit_length(cap)
 		push = Vector2.ZERO
 	return v
 

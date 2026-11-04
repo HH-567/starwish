@@ -17,7 +17,7 @@ extends Resource
 
 @export_group("速度")
 ## 阶段 1–5 的速率下限，px/s。
-@export var stage_min := PackedFloat32Array([0.0, 220.0, 380.0, 560.0, 760.0])
+@export var stage_min := PackedFloat32Array([0.0, 220.0, 470.0, 560.0, 760.0])
 ## 换档回差，偏向安全：阶段 2 晚进早出。
 @export var hysteresis := 20.0
 ## 阶段 5 封顶。

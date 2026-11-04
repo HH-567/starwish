@@ -48,9 +48,9 @@ func _pure_checks() -> void:
 	_check("回差：阶段 1 到 230 还是 1", p.stage_for(230.0, 1) == 1)
 	_check("回差：阶段 1 到 245 升到 2", p.stage_for(245.0, 1) == 2)
 	_check("回差：阶段 2 降到 215 就回 1", p.stage_for(215.0, 2) == 1)
-	_check("回差：阶段 3 降到 370 还是 3", p.stage_for(370.0, 3) == 3)
-	_check("回差：阶段 3 降到 355 才回 2", p.stage_for(355.0, 3) == 2)
-	_check("回差：阶段 2 到 380 升到 3", p.stage_for(380.0, 2) == 3)
+	_check("回差：阶段 3 降到 455 还是 3", p.stage_for(455.0, 3) == 3)
+	_check("回差：阶段 3 降到 445 才回 2", p.stage_for(445.0, 3) == 2)
+	_check("回差：阶段 2 到 470 升到 3", p.stage_for(470.0, 2) == 3)
 	_check("从静止直接到 800 是阶段 5", p.stage_for(800.0, 1) == 5)
 	var braked := p.step_velocity(Vector2(300, 0), Vector2.LEFT, dt).length()
 	_check("反向输入刹车", is_equal_approx(braked, 300.0 - t.accel * t.brake_mult * dt), "%.2f" % braked)
@@ -94,7 +94,7 @@ func _wall_cases() -> bool:
 	await _cleanup(wall)
 
 	wall = _tile_column(0)
-	hit = await _launch(wall, 450.0)
+	hit = await _launch(wall, 520.0)
 	_check("阶段 3 撞墙：反弹，不扣亮度", _kind(hit) == &"bounce" and hit[1].x < -360.0 and hit[2] == 60.0, _fmt(hit))
 	await _cleanup(wall)
 
@@ -104,7 +104,7 @@ func _wall_cases() -> bool:
 	await _cleanup(wall)
 
 	wall = _entity(CRACKED_SCENE)
-	hit = await _launch(wall, 450.0)
+	hit = await _launch(wall, 520.0)
 	_check("阶段 3 撞裂纹墙：反弹，墙还在", _kind(hit) == &"bounce" and is_instance_valid(wall), _fmt(hit))
 	await _cleanup(wall)
 
@@ -152,7 +152,7 @@ func _wall_cases() -> bool:
 	await _cleanup(wall)
 
 	wall = _entity(BARS_SCENE)
-	hit = await _launch(wall, 450.0)
+	hit = await _launch(wall, 520.0)
 	_check("栅栏挡住小星：阶段 3 反弹", _kind(hit) == &"bounce" and is_instance_valid(wall), _fmt(hit))
 	await _cleanup(wall)
 

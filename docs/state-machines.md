@@ -141,7 +141,7 @@ INACTIVE →（小星进入）ACTIVE：写存档 `checkpoint`，只记最新的�
 
 - 每个黑洞节点自己带 `radius`（默认 200）和 `strength`（默认 48000：半径边缘约 200 px/s²，贴脸封顶 1200），`min_distance` 默认 40。
 - 这个加速度每帧写进 `Player.push`，由 `step_velocity` 在**松手减速之后**叠上去再清空。直接改 velocity 的话会被 `coast_decel` 抹掉，人根本吸不动——这个坑踩过。
-- 外部推力不受 WASD 上限约束，所以能被甩到比 759 更快（只到 `max_speed`），之后按 `overspeed_decay` 回落。
+- 外部推力不受 WASD 上限约束，能甩到比 759 更快——但**只在终章**（`Game.flow == CHASE`）：关卡里封在阶段 4 的顶，否则玩家会借着黑洞冲到阶段 5 把关卡挖穿。之后按 `overspeed_decay` 回落。
 
 ## 12. 噬光者（Boss）
 
