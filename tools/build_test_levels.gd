@@ -287,7 +287,7 @@ func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs
 			return _place_npc(root, parent, ch, rect)
 		return _place_help(root, parent, ch, rect, kind, npcs)
 	if not SCENES.has(ch):
-		push_error("未知图例 %s，位置 %s" % [ch, rect.position])
+		push_error("未知图例 [%s] 码 %d，位置 %s" % [ch, ch.unicode_at(0), rect.position])
 		return null
 	var node := _instance(ESCAPE_SCENE if kind == Kind.OUTRO and ch == "E" else SCENES[ch])
 	var size := Vector2(rect.size * TILE)
