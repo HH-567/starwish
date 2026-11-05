@@ -73,6 +73,14 @@ func _walk() -> bool:
 	await _frames(10)
 	_check("走到检查点：存档记下它", Save.checkpoint == "ch0/Level/Entities/Checkpoint", Save.checkpoint)
 
+	# 亮度条：HUD 左下角那条，跟着 light_changed 走。
+	var bar := get_tree().current_scene.find_child("LightBar", true, false)
+	_check("HUD 有亮度条", bar != null)
+	if bar != null:
+		Game.light_changed.emit(10.0, 40.0)
+		_check("亮度条跟着 light_changed 走", is_equal_approx(bar.value, 10.0) and is_equal_approx(bar.max_value, 40.0),
+				"%.0f / %.0f" % [bar.value, bar.max_value])
+
 	# 出口。
 	_player.global_position = _exit_pos()
 	await _frames(10)

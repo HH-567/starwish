@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
 [ext_resource type="Script" path="res://scripts/ui/stage_pips.gd" id="2_pips"]
 [ext_resource type="Script" path="res://scripts/ui/boss_marker.gd" id="3_marker"]
 [ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="4_touch"]
+[ext_resource type="Script" path="res://scripts/ui/light_bar.gd" id="5_light"]
 
 [node name="HUD" type="CanvasLayer"]
 layer = 10
@@ -20,6 +21,10 @@ script = ExtResource("3_marker")
 [node name="Touch" type="Control" parent="."]
 mouse_filter = 2
 script = ExtResource("4_touch")
+
+[node name="LightBar" type="Control" parent="."]
+mouse_filter = 2
+script = ExtResource("5_light")
 
 [node name="Debug" type="Label" parent="."]
 theme_override_colors/font_color = Color(0.75, 0.82, 1, 0.9)

@@ -26,6 +26,7 @@ func _ready() -> void:
 	_wall = _make_wall(WALL, Vector2(32, 220))
 	await _sees_and_fires()
 	await _hides_behind_wall()
+	await _double_shot()
 	await _shot_bounces()
 	await _shot_expires()
 	await _shot_hurts_player()
@@ -90,6 +91,37 @@ func _hides_behind_wall() -> void:
 	enemy.queue_free()
 	for shot in _shots():
 		shot.queue_free()
+	await get_tree().physics_frame
+
+## 难度随章节走：瞄准更快、冷却更短，第三章起一梭两发。
+func _double_shot() -> void:
+	var weak := ENEMY_SCENE.instantiate() as Enemy
+	weak.tier = 1
+	var strong := ENEMY_SCENE.instantiate() as Enemy
+	strong.tier = 4
+	_check("越往后瞄得越快", strong._aim_time() < weak._aim_time() - 0.01,
+			"%.2f / %.2f 秒" % [strong._aim_time(), weak._aim_time()])
+	_check("越往后冷却越短", strong._cooldown() < weak._cooldown() - 0.1,
+			"%.2f / %.2f 秒" % [strong._cooldown(), weak._cooldown()])
+	weak.free()
+	strong.free()
+
+	var enemy := ENEMY_SCENE.instantiate() as Enemy
+	enemy.tier = 3
+	enemy.position = Vector2(300, 300)
+	add_child(enemy)
+	_player.global_position = Vector2(150, 300)
+	_player.velocity = Vector2.ZERO
+	var count := 0
+	for i in 180:
+		await get_tree().physics_frame
+		count = maxi(count, _shots().size())
+		if count >= 2:
+			break
+	_check("第三章的影鬼一梭两发", count == 2, "打出 %d 发" % count)
+	for shot in _shots():
+		shot.queue_free()
+	enemy.queue_free()
 	await get_tree().physics_frame
 
 ## 撞墙反弹：方向翻过来，次数加一。

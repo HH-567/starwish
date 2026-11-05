@@ -54,7 +54,8 @@ func _walk() -> bool:
 	_check("铁门挡住去路", _player.global_position.y > 19.0 * 32.0, "y=%.0f" % _player.global_position.y)
 
 	# 长直道：按住右跑到阶段 4，撞碎裂纹墙（关卡区没有加速带，WASD 自己能到阶段 4）。
-	_put(Vector2i(26, 20))
+	# 阶段 4 的门槛抬到 620 之后，起跑点要再往西退几格，直道才够长。
+	_put(Vector2i(18, 20))
 	Input.action_press("move_right")
 	var reached := 0
 	for i in 300:

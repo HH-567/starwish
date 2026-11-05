@@ -23,10 +23,14 @@ const SHAKE_PX := 14.0
 const SPOT_ZOOM := 1.7
 const SPOT_TIME := 1.15
 const SPOT_SLOW := 0.35
-## 死亡特写：比帮助特写更近、更慢、更短——玩家应该先看清"我碎了"，然后马上重来。
+## 死亡特写：比帮助特写更近、更慢、更短——玩家应该先看清"我怎么了"，然后马上重来。
 const DEATH_ZOOM := 2.0
 const DEATH_TIME := 0.5
 const DEATH_SLOW := 0.28
+## 熄灭（油尽灯枯）的版本：轻一点、久一点，配合"化开"的演出。
+const DISSOLVE_ZOOM := 1.55
+const DISSOLVE_TIME := 0.7
+const DISSOLVE_SLOW := 0.45
 
 var _trauma := 0.0
 var _look := Vector2.ZERO
@@ -74,12 +78,17 @@ func _on_help_triggered(role: StringName) -> void:
 	_spot_left = SPOT_TIME
 	Engine.time_scale = SPOT_SLOW
 
-## 小星碎了：就着它碎的地方拉近、慢放。碎片是在关卡里播的，镜头跟着玩家走，正好框住。
-func _on_player_dying(_pos: Vector2) -> void:
+## 小星死了：就着它倒下的地方拉近、慢放。熄灭（油尽灯枯）轻一点，碎掉重一点。
+func _on_player_dying(_pos: Vector2, cause: int) -> void:
 	_spot_help = null
-	_spot_zoom = DEATH_ZOOM
-	_spot_left = DEATH_TIME
-	Engine.time_scale = DEATH_SLOW
+	if cause == Player.Death.EXTINGUISHED:
+		_spot_zoom = DISSOLVE_ZOOM
+		_spot_left = DISSOLVE_TIME
+		Engine.time_scale = DISSOLVE_SLOW
+	else:
+		_spot_zoom = DEATH_ZOOM
+		_spot_left = DEATH_TIME
+		Engine.time_scale = DEATH_SLOW
 
 ## 已经触发、职业对得上的那个帮助点（每个职业每段赛道只有一个）。
 func _help_point(role: StringName) -> Node2D:

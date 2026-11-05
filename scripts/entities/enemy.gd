@@ -18,11 +18,23 @@ const SHOT_SCENE := preload("res://scenes/entities/shot.tscn")
 @export var aim_time := 0.6
 @export var cooldown := 2.4
 @export var radius := 16.0
+## 第几章的影鬼（1 起）。构建器按章节表填；一章比一章狠：瞄得快、冷却短，第三章起改成一梭两发。
+@export var tier := 1
 
 var state := State.IDLE
 var time := 0.0
 ## 瞄准方向，AIM 期间一直跟着小星转。
 var aim_dir := Vector2.RIGHT
+
+## 这一只实际用的瞄准时间、冷却、一次打几发。
+func _aim_time() -> float:
+	return aim_time * maxf(1.0 - Game.tuning.enemy_aim_step * (tier - 1), 0.35)
+
+func _cooldown() -> float:
+	return cooldown * maxf(1.0 - Game.tuning.enemy_cool_step * (tier - 1), 0.35)
+
+func _volley() -> int:
+	return 2 if tier >= Game.tuning.enemy_double_from else 1
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -57,12 +69,12 @@ func _physics_process(delta: float) -> void:
 				_set_state(State.IDLE)
 			else:
 				aim_dir = (player.global_position - global_position).normalized()
-				if time >= aim_time:
+				if time >= _aim_time():
 					_fire()
 		State.FIRE:
 			_set_state(State.COOLDOWN)
 		State.COOLDOWN:
-			if time >= cooldown:
+			if time >= _cooldown():
 				_set_state(State.IDLE)
 	queue_redraw()
 
@@ -84,10 +96,18 @@ func _fire() -> void:
 	_set_state(State.FIRE)
 	if not is_inside_tree():
 		return
-	var shot := SHOT_SCENE.instantiate() as Shot
-	shot.direction = aim_dir
-	shot.global_position = global_position + aim_dir * (radius + 14.0)
-	get_parent().add_child(shot)
+	var count := _volley()
+	var spread := Game.tuning.enemy_spread
+	for i in count:
+		# 一发打正，两发就左右各偏一点（扇形）
+		var offset := 0.0
+		if count > 1:
+			offset = deg_to_rad(spread) * (float(i) - (count - 1) * 0.5)
+		var dir := aim_dir.rotated(offset)
+		var shot := SHOT_SCENE.instantiate() as Shot
+		shot.direction = dir
+		shot.global_position = global_position + dir * (radius + 14.0)
+		get_parent().add_child(shot)
 	Audio.play(&"hit")
 
 ## 死：一团碎片，然后从场上消失。谁打死的记在 Game 的信号里。

@@ -146,7 +146,7 @@ func _build_chapter(tiles: TileSet, spec: Array) -> Error:
 	root.set("chapter_id", spec[3])
 	root.set("dark", spec[4])
 	var level := _area(root, root, "Level")
-	var rows := _build_area(root, level, tiles, spec[0], Kind.LEVEL, {})
+	var rows := _build_area(root, level, tiles, spec[0], Kind.LEVEL, {}, _tier_for(spec[3]))
 	# 赛道里的帮助点按职业找关卡区里的人。
 	var npcs := {}
 	for node in level.get_node(^"Entities").get_children():
@@ -156,6 +156,13 @@ func _build_chapter(tiles: TileSet, spec: Array) -> Error:
 	lane.position = Vector2(0, (rows + AREA_GAP) * TILE)
 	_build_area(root, lane, tiles, spec[5], Kind.LANE, npcs)
 	return _save(root, spec[1])
+
+## 章节 id → 影鬼的等级（序章最轻，第五章最狠）。测试关没有对应章节，就按 1 算。
+func _tier_for(id: StringName) -> int:
+	for i in Game.chapters.size():
+		if Game.chapters[i][0] == id:
+			return mini(i + 1, 5)
+	return 1
 
 ## 终章：开头和结尾两块，中间的赛道运行时按章节表接上（scripts/levels/finale.gd）。
 func _build_finale(tiles: TileSet) -> Error:
@@ -187,7 +194,7 @@ func _area(root: Node, parent: Node, area_name: String) -> Node2D:
 
 ## 按文本地图在 area 下铺墙（Walls）、摆实体（Entities）、放标记点。npcs 是关卡区里的人（职业 → 节点），
 ## 赛道里的帮助点指向他们。返回地图有几行。
-func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kind: Kind, npcs := {}) -> int:
+func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kind: Kind, npcs := {}, tier := 1) -> int:
 	var walls := TileMapLayer.new()
 	walls.name = "Walls"
 	walls.tile_set = tiles
@@ -232,7 +239,7 @@ func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kin
 		if kind == Kind.LANE and PARTS.has(ch):
 			parts.append([ch, rect])
 			continue
-		var node := _place(root, entities, ch, rect, kind, npcs)
+		var node := _place(root, entities, ch, rect, kind, npcs, tier)
 		if node is HelpPoint:
 			helpers[node.role] = node
 		elif node != null and pairs.has(ch):
@@ -283,7 +290,7 @@ func _center(rect: Rect2i) -> Vector2:
 func _instance(path: String) -> Node2D:
 	return (load(path) as PackedScene).instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE) as Node2D
 
-func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs: Dictionary) -> Node2D:
+func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs: Dictionary, tier := 1) -> Node2D:
 	if ROLES.has(ch):
 		if kind == Kind.LEVEL:
 			return _place_npc(root, parent, ch, rect)
@@ -309,6 +316,9 @@ func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs
 			node.set("length", TILE * sqrt(2.0) + 8.0)
 		"C", "P", "V", "H", "I", "E":
 			node.set("size", size)
+		"x":
+			# 第几章的影鬼：越往后越狠（瞄准更快、冷却更短，第三章起双发）
+			node.set("tier", tier)
 	node.position = _center(rect)
 	_add(root, parent, node)
 	return node

@@ -49,8 +49,34 @@ func _ready() -> void:
 			break
 	_check("特写结束恢复常速", restored, "time_scale=%.2f" % Engine.time_scale)
 	Engine.time_scale = 1.0
+
+	# 第二种死法：亮度自己耗尽（熄灭）→ 化开，不是碎掉
+	_player.queue_free()
+	for child in get_children():
+		if child is Shatter:
+			child.queue_free()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	_player = PLAYER_SCENE.instantiate() as Player
+	_player.aim_from_mouse = false
+	add_child(_player)
+	while _player.state != Player.State.ACTIVE:
+		await get_tree().physics_frame
+	_player.global_position = Vector2(400, 300)
+	_player._die(Player.Death.EXTINGUISHED)
+	await get_tree().process_frame
+	_check("熄灭：场上是消散特效", _dissolve() != null)
+	_check("熄灭：没有碎片", _shatter() == null)
+	_check("熄灭：星体还在画，慢慢淡下去", _player.fade() > 0.0, "fade=%.2f" % _player.fade())
+	Engine.time_scale = 1.0
 	print("RESULT %s，失败 %d 项" % ["PASS" if _failures == 0 else "FAIL", _failures])
 	get_tree().quit(1 if _failures > 0 else 0)
+
+func _dissolve() -> Dissolve:
+	for child in get_children():
+		if child is Dissolve:
+			return child as Dissolve
+	return null
 
 func _shatter() -> Shatter:
 	for child in get_children():

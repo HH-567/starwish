@@ -17,7 +17,7 @@ extends Resource
 
 @export_group("速度")
 ## 阶段 1–5 的速率下限，px/s。
-@export var stage_min := PackedFloat32Array([0.0, 220.0, 470.0, 560.0, 760.0])
+@export var stage_min := PackedFloat32Array([0.0, 220.0, 470.0, 620.0, 760.0])
 ## 换档回差，偏向安全：阶段 2 晚进早出。
 @export var hysteresis := 20.0
 ## 阶段 5 封顶。
@@ -116,6 +116,12 @@ extends Resource
 @export var enemy_aim_time := 0.6
 ## 开完一枪歇多久。
 @export var enemy_cooldown := 2.4
+## 一章比一章狠：每往后一章，瞄准时间乘 (1 - enemy_aim_step)、冷却乘 (1 - enemy_cool_step)；
+## 从第 enemy_double_from 章起改成一梭两发（左右各偏 enemy_spread 度）。
+@export var enemy_aim_step := 0.08
+@export var enemy_cool_step := 0.1
+@export var enemy_double_from := 3
+@export var enemy_spread := 7.0
 ## 影鬼的身位半径，也是"小星贴上来"的判定半径。
 @export var enemy_radius := 16.0
 ## 弹幕速度、打到小星扣多少亮度、能弹几次墙。
