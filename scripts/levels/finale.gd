@@ -8,8 +8,13 @@ extends Node2D
 const PLAYER_SCENE := preload("res://scenes/entities/player.tscn")
 const BOSS_SCENE := preload("res://scenes/entities/boss.tscn")
 const HUD_SCENE := preload("res://scenes/ui/hud.tscn")
+const LIGHTER_SCENE := preload("res://scenes/entities/road_lighter.tscn")
 ## 镜头上下多留的距离：赛道比屏幕矮时，小星也能在屏幕中间。
 const CAMERA_PAD := 240.0
+## 铺路演出时镜头往赛道前方滑多远。
+const SWEEP_PX := 1500.0
+## 一段加速带和下一段之间隔多久铺（真实时间，秒）。
+const DEPLOY_GAP := 0.07
 
 ## 存档 id 的前缀：开头和结尾里的节点 id 是 "finale/…"。
 var chapter_id := &"finale"
@@ -45,6 +50,53 @@ func _ready() -> void:
 	cam.limit_bottom = int(bounds.end.y)
 	cam.reset_smoothing()
 	Game.boss_state_changed.connect(_on_boss_state_changed)
+	Game.road_light.connect(_on_road_light)
+	# 赛道一开始是暗的：加速带全收起来，等点灯的人来铺。
+	if _reached < 0:
+		for strip in _strips():
+			strip.undeploy()
+		_add_lighter()
+	else:
+		# 从检查点续跑：路早就点着了，直接铺好，不再演一遍。
+		for strip in _strips():
+			strip.deploy()
+
+## 点灯的人站在开头那段出口，小星跑过去他就把路点着。
+func _add_lighter() -> void:
+	var exit := $Intro/Exit as Node2D
+	var lighter := LIGHTER_SCENE.instantiate() as RoadLighter
+	lighter.position = to_local(exit.global_position + Vector2(-80.0, 0.0))
+	add_child(lighter)
+
+## 赛道上所有加速带，按离小星的距离排好（先铺近的，再铺远的，一路铺到结尾）。
+func _strips() -> Array[AccelStrip]:
+	var out: Array[AccelStrip] = []
+	for node in find_children("*", "AccelStrip", true, false):
+		var strip := node as AccelStrip
+		# 园丁的花是他自己种的，不归点灯的人管
+		if strip != null and not strip.flowers:
+			out.append(strip)
+	out.sort_custom(func(a: AccelStrip, b: AccelStrip) -> bool: return a.global_position.x > b.global_position.x)
+	return out
+
+func _on_road_light(_pos: Vector2) -> void:
+	await _light_road()
+
+## 铺路演出：镜头往赛道前方滑过去，加速带一段一段亮起来，一路亮到结尾。
+func _light_road() -> void:
+	var cam := player.get_node(^"Camera") as Camera2D
+	# 演出里小星不会被打断：给一段无敌和保护，跑掉的速度也由他自己控制
+	player.hurt_left = maxf(player.hurt_left, 3.0)
+	player.grace_left = maxf(player.grace_left, 3.0)
+	cam.sweep(player.global_position + Vector2(-SWEEP_PX, 0.0), 1.3)
+	for strip in _strips():
+		if not is_instance_valid(strip):
+			continue
+		if strip.deployed:
+			continue
+		await get_tree().create_timer(DEPLOY_GAP, true, false, true).timeout
+		if is_instance_valid(strip):
+			strip.deploy()
 
 func _physics_process(_delta: float) -> void:
 	if _from_start and boss.state == Boss.State.EMERGE and player.state == Player.State.ACTIVE:

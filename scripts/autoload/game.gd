@@ -8,6 +8,8 @@ signal light_changed(value: float, max_value: float)
 signal player_hit(kind: StringName)
 ## 小星刚开始死亡演出（还没重载场景）。镜头靠它切特写；cause 用 Player.Death。
 signal player_dying(pos: Vector2, cause: int)
+## 终章里点灯的人把赛道加速带铺出来的那一刻。
+signal road_light(pos: Vector2)
 signal player_died(cause: int)
 signal npc_rescued(id: String)
 signal vine_burnt(id: String)

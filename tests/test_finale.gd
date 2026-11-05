@@ -37,6 +37,9 @@ class Runner extends Node:
 	var _helps: Array[StringName] = []
 	## 追逐里噬光者贴得最近时的距离，用来说明"没帮助时有多险"。
 	var _min_gap := 99999.0
+	## 赛道上的加速带：一共几段、最多同时亮了几段（点灯的人铺完应该是全部）。
+	var _strip_total := 0
+	var _strip_lit := 0
 	var _checkpoints: Array[String] = []
 
 	func _ready() -> void:
@@ -172,11 +175,17 @@ class Runner extends Node:
 		_check("打开终章（一个都没救）", await _open())
 		finale = _finale()
 		_check("没救人：没有帮助点", _help_points(finale).is_empty())
+		_check("赛道一开始加速带是收着的", _strips(finale).size() > 0 and _strips(finale).all(func(s: AccelStrip) -> bool: return not s.deployed),
+				"%d 段" % _strips(finale).size())
+		_strip_total = _strips(finale).size()
+		_strip_lit = 0
 		_check("没救矿工：隧道那里还是墙", _wall_at(finale, tunnel_at))
 		_check("没救人：没有光门和掉头虫洞", finale.find_children("*", "Wormhole", true, false).is_empty())
 		_deaths = 0
 		await _autopilot(ROUTE_NONE)
 		_check("一个都没救：自己跑到逃离点，正常结局", await _until(_in_ending, 200) and Game.ending == &"main")
+		_check("跑过点灯的人之后：加速带一路铺到结尾", _strip_total > 0 and _strip_lit == _strip_total,
+				"%d / %d 段" % [_strip_lit, _strip_total])
 		_check("一个都没救：一路没死", _deaths == 0, "死了 %d 次，噬光者最近 %.0f px" % [_deaths, _min_gap])
 		print("NOHELP_MIN_GAP %.0f" % _min_gap)
 
@@ -219,6 +228,12 @@ class Runner extends Node:
 			var boss := finale.boss
 			if boss != null and boss.state == Boss.State.CHASE:
 				_min_gap = minf(_min_gap, boss.gap())
+			if _strip_total > 0:
+				var lit := 0
+				for strip in _strips(finale):
+					if strip.deployed:
+						lit += 1
+				_strip_lit = maxi(_strip_lit, lit)
 			var p := finale.player
 			if p.state != Player.State.ACTIVE:
 				_steer(0)
@@ -271,6 +286,15 @@ class Runner extends Node:
 		for node in root.find_children("*", "HelpPoint", true, false):
 			if not node.is_queued_for_deletion():
 				out.append(node)
+		return out
+
+	## 赛道上的加速带（园丁的花不算，那是他自己种的）。
+	func _strips(root: Node) -> Array[AccelStrip]:
+		var out: Array[AccelStrip] = []
+		for node in root.find_children("*", "AccelStrip", true, false):
+			var strip := node as AccelStrip
+			if strip != null and not strip.flowers and not strip.is_queued_for_deletion():
+				out.append(strip)
 		return out
 
 	func _help(finale: Finale, role: String) -> HelpPoint:

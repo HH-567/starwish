@@ -101,7 +101,7 @@ Finale (Node2D, finale.gd)       存档 id 前缀是 finale
 | IronDoor 铁门 | size。锁匠已救才打开；任何速度都撞不开 | 跟着锁匠 | P0 |
 | Pad 软垫 | size，可旋转 | — | P0 |
 | Wormhole 虫洞 | 子节点 A、B；two_way；keep_direction | — | P0 |
-| AccelStrip 加速带 | target_speed（赛道里一般 920）；flowers（画成花：园丁的花，是他帮助点的子节点）；朝向 = 节点旋转 | — | P0 |
+| AccelStrip 加速带 | target_speed（赛道里一般 920）；flowers（画成花：园丁的花，是他帮助点的子节点）；朝向 = 节点旋转。终章整条赛道一开始是收着的（`undeploy()`：不画也不触发），点灯的人跑过才一段段 `deploy()` | — | P0 |
 | StarShard 小星星 | amount：碰到时一次性回亮度 | 不存，复活后重生 | P0 |
 | Checkpoint 检查点 | — | 当前检查点 | P0 |
 | Exit 出口 | 一直开着 | — | P0 |
@@ -109,6 +109,7 @@ Finale (Node2D, finale.gd)       存档 id 前缀是 finale
 | Lamp 路灯 | 守夜人帮助点的子节点。经过守夜人时由近到远亮起来 | — | P0 |
 | Tunnel 隧道 | size。矿工帮助点的子节点：地图上先铺成墙，矿工已救时擦掉这块墙 | — | P0 |
 | EscapePoint 逃离点 | size。终章结尾的终点 | — | P0 |
+| RoadLighter 点灯的人 | 终章开头的出门口站着的小人（不占存档、不参与"救人"）。小星经过时发 `Game.road_light`，全场的加速带从近到远铺出来，同时镜头往赛道前方滑一段 | 不存 | P0 |
 | Meteor 流星 | interval、warn_time、radius | — | P2 |
 | BlackHole 黑洞 | radius、strength | — | P2 |
 | Enemy 影鬼 | range_px、aim_time、cooldown、radius。图例 `x`，一个格子一只；不挡路，看得见小星就瞄、瞄完打一发会反弹的弹幕 | 不存，死亡是本章内的 | P2 |

@@ -31,6 +31,9 @@ const DEATH_SLOW := 0.28
 const DISSOLVE_ZOOM := 1.55
 const DISSOLVE_TIME := 0.7
 const DISSOLVE_SLOW := 0.45
+## 铺路演出：镜头从玩家身上脱开、往赛道前方滑过去，顺便把镜头拉远看全跑道。
+const SWEEP_ZOOM := 0.82
+const SWEEP_SLOW := 0.32
 
 var _trauma := 0.0
 var _look := Vector2.ZERO
@@ -40,6 +43,11 @@ var _spot_left := 0.0
 var _spot_zoom := SPOT_ZOOM
 ## 特写框住的那个人（帮助点）。镜头框在他和小星中间，两人都看得见。
 var _spot_help: Node2D
+## 铺路演出：镜头脱开玩家滑到 to，滑完再回来。
+var _sweep_from := Vector2.ZERO
+var _sweep_to := Vector2.ZERO
+var _sweep_total := 0.0
+var _sweep_left := 0.0
 
 @onready var _player := get_parent() as Player
 
@@ -54,6 +62,9 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	# delta 被 time_scale 缩放过；特写的时长按真实时间算。
 	var real := delta / maxf(Engine.time_scale, 0.01)
+	if _sweep_left > 0.0:
+		_sweep(real)
+		return
 	if _spot_left > 0.0:
 		_spot_left -= real
 		if _spot_left > 0.0:
@@ -113,6 +124,31 @@ func _end_spot() -> void:
 	_spot_left = 0.0
 	Engine.time_scale = 1.0
 	reset_smoothing()
+
+## 铺路演出：镜头从玩家身上脱开、沿赛道往前（往左）滑过去，一边滑一边拉远，
+## 让玩家看清这一段跑道是怎么被点亮的。滑完自动回到跟随。
+func sweep(to_world: Vector2, time := 1.3) -> void:
+	if _sweep_left > 0.0:
+		return
+	_sweep_from = _player.global_position
+	_sweep_to = to_world
+	_sweep_total = maxf(time, 0.2)
+	_sweep_left = _sweep_total
+	Engine.time_scale = SWEEP_SLOW
+
+func _sweep(real: float) -> void:
+	_sweep_left -= real
+	var k := 1.0 - clampf(_sweep_left / _sweep_total, 0.0, 1.0)
+	var eased := smoothstep(0.0, 1.0, k)
+	var world := _sweep_from.lerp(_sweep_to, eased)
+	position = world - _player.global_position
+	zoom = zoom.lerp(Vector2(SWEEP_ZOOM, SWEEP_ZOOM), 1.0 - exp(-6.0 * real))
+	offset = Vector2.ZERO
+	_look = position
+	if _sweep_left <= 0.0:
+		_sweep_left = 0.0
+		Engine.time_scale = 1.0
+		reset_smoothing()
 
 ## 镜头被删掉（换场景、死亡重载）时把慢放收回来，别让结局画面一起变慢。
 func _exit_tree() -> void:

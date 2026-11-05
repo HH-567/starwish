@@ -22,6 +22,10 @@ const FLOWER_GAP := 20.0
 		queue_redraw()
 
 var _t := 0.0
+## 铺没铺出来。终章一开始是 false（路还没点亮），守夜人来了才一段段 deploy。
+var deployed := true
+## 亮起动画剩余时间，>0 时画一层白光。
+var _appear := 0.0
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -33,9 +37,33 @@ func _ready() -> void:
 	monitorable = false
 	Shapes.add_rect(self, size)
 	body_entered.connect(_on_body_entered)
+	_apply()
+
+## 收起：画都不画、也触发不了。
+func undeploy() -> void:
+	deployed = false
+	_apply()
+
+## 铺出来：亮起并开始生效。
+func deploy() -> void:
+	if deployed:
+		return
+	deployed = true
+	_appear = 0.4
+	_apply()
+
+func _apply() -> void:
+	visible = deployed
+	collision_layer = Layers.TRIGGER if deployed else 0
+	monitoring = deployed
+	queue_redraw()
 
 func _process(delta: float) -> void:
+	if not deployed:
+		return
 	_t += delta
+	if _appear > 0.0:
+		_appear = maxf(_appear - delta, 0.0)
 	queue_redraw()
 
 func _on_body_entered(body: Node2D) -> void:
@@ -61,3 +89,6 @@ func _draw() -> void:
 				for k in 4:
 					draw_circle(p + Vector2.from_angle(spin + TAU * k / 4.0) * 3.5, 2.5, Color(FLOWER, 0.75))
 				draw_circle(p, 1.8, Color("fff2c0"))
+	# 刚铺出来的一瞬间：整条亮一下
+	if _appear > 0.0:
+		draw_rect(Rect2(-half, size), Color(1, 1, 1, 0.55 * (_appear / 0.4)), true)
