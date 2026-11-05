@@ -6,6 +6,8 @@ extends Node
 signal speed_stage_changed(stage: int)
 signal light_changed(value: float, max_value: float)
 signal player_hit(kind: StringName)
+## 小星刚开始死亡演出（还没重载场景）。镜头靠它切特写。
+signal player_dying(pos: Vector2)
 signal player_died(cause: int)
 signal npc_rescued(id: String)
 signal vine_burnt(id: String)

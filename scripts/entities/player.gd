@@ -338,9 +338,11 @@ func _die(cause: Death) -> void:
 	velocity = Vector2.ZERO
 	_set_state(State.DYING)
 	Game.light_changed.emit(light, light_max)
-	if cause == Death.SHATTERED:
-		Debris.spawn(get_parent(), global_position, STAR_COLOR, 18, 300.0, 6.0, true)
-		_hit(&"shatter")
+	# 死亡演出：星体当场碎掉（白光 + 冲击环 + 碎片），镜头同时拉近、慢放。
+	# 不管怎么死的都是这个演出——"熄灭"和"碎裂"在画面上是同一件事，原来的区别只是星体淡出还是消失。
+	Shatter.spawn(get_parent(), global_position, STAR_COLOR)
+	_hit(&"shatter")
+	Game.player_dying.emit(global_position)
 
 func _set_state(next: State) -> void:
 	state = next
@@ -409,12 +411,15 @@ func fade() -> float:
 		State.WARP:
 			return 0.0
 		State.DYING:
-			if death_cause == Death.SHATTERED:
-				return 0.0
+			# 星体本身在 _draw 里直接不画了，这里只管"光怎么灭"：让它在一秒里慢慢暗下去，
+			# 不要咔一下变黑（会在地面上留下一个突兀的黑圆）。
 			return 1.0 - clampf(_state_time / DYING_TIME, 0.0, 1.0)
 	return 1.0
 
 func _draw() -> void:
+	# 死亡演出：碎片接手，星体自己不画。
+	if state == State.DYING:
+		return
 	var a := fade()
 	if a <= 0.0:
 		return
