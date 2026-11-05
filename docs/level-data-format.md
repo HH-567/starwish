@@ -111,6 +111,8 @@ Finale (Node2D, finale.gd)       存档 id 前缀是 finale
 | EscapePoint 逃离点 | size。终章结尾的终点 | — | P0 |
 | Meteor 流星 | interval、warn_time、radius | — | P2 |
 | BlackHole 黑洞 | radius、strength | — | P2 |
+| Enemy 影鬼 | range_px、aim_time、cooldown、radius。图例 `x`，一个格子一只；不挡路，看得见小星就瞄、瞄完打一发会反弹的弹幕 | 不存，死亡是本章内的 | P2 |
+| Shot 弹幕 | 影鬼打出来的，不摆进地图。撞墙弹 3 次，打中小星扣亮度并推一把，打中影鬼（含自己）就把它打掉 | — | P2 |
 | Boss 噬光者 | 只在终章出现，由 finale.gd 放进去 | — | P0 |
 
 ## 4. 物理层与光线

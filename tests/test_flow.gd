@@ -19,6 +19,7 @@ class Runner extends Node:
 		Save.path = PATH
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 		Game.debug_no_decay = true
+		Game.debug_no_enemies = true
 		_ids.assign(Game.chapters.map(func(c: Array) -> StringName: return c[0]))
 		var finished: Variant = await _run()
 		_check("全部步骤都跑完了", finished == true)

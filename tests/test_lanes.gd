@@ -12,6 +12,7 @@ var _failures := 0
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	for chapter: Array in Game.chapters:
 		await _run_lane(String(chapter[0]), String(chapter[1]))
 	print("RESULT %s，失败 %d 项" % ["PASS" if _failures == 0 else "FAIL", _failures])

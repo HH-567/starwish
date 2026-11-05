@@ -12,6 +12,7 @@ var _events: Array[StringName] = []
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 	Game.npc_rescued.connect(func(_id: String) -> void: _events.append(&"rescued"))
 	Game.checkpoint_reached.connect(func(_id: String) -> void: _events.append(&"checkpoint"))

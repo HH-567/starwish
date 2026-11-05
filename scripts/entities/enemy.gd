@@ -1,0 +1,125 @@
+@tool
+class_name Enemy
+extends StaticBody2D
+## 影鬼（docs/state-machines.md 第 12 节）：蹲在暗处的射手。
+## IDLE →（看见小星）AIM（画一条红线瞄着）→ FIRE（打出一发会反弹的弹幕）→ COOLDOWN → IDLE。
+## 三种死法：小星撞上来、弹幕弹回来打中它自己、或者别的影鬼的弹幕打中它。
+## 它自己不挡路（没有墙的碰撞层），所以小星可以直接冲过去把它撞散。
+
+enum State { IDLE, AIM, FIRE, COOLDOWN }
+
+const BODY_COLOR := Color("171528")
+const EDGE_COLOR := Color("6a4b8f")
+const EYE_COLOR := Color("ff5a4a")
+const SHOT_SCENE := preload("res://scenes/entities/shot.tscn")
+
+## 这四样按 docs 第 3 节，是实体自己的参数，摆进地图时可以逐个调。
+@export var range_px := 420.0
+@export var aim_time := 0.6
+@export var cooldown := 2.4
+@export var radius := 16.0
+
+var state := State.IDLE
+var time := 0.0
+## 瞄准方向，AIM 期间一直跟着小星转。
+var aim_dir := Vector2.RIGHT
+
+func _ready() -> void:
+	if Engine.is_editor_hint():
+		return
+	material = Lighting.unshaded()
+	collision_layer = Layers.ENEMY
+	collision_mask = 0
+	Shapes.add_rect(self, Vector2(radius * 2.0, radius * 2.0))
+	_set_state(State.IDLE)
+
+func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	if get_tree().paused:
+		return
+	if Game.debug_no_enemies:
+		return
+	time += delta
+	var player := get_tree().get_first_node_in_group(&"player") as Player
+	# 小星贴到身上：不管在干什么都被撞散
+	if state != State.FIRE and _touching(player):
+		_kill(&"charge")
+		return
+	match state:
+		State.IDLE:
+			if _can_see(player):
+				aim_dir = (player.global_position - global_position).normalized()
+				_set_state(State.AIM)
+		State.AIM:
+			if not _can_see(player):
+				# 躲进墙后面就放弃这一枪
+				_set_state(State.IDLE)
+			else:
+				aim_dir = (player.global_position - global_position).normalized()
+				if time >= aim_time:
+					_fire()
+		State.FIRE:
+			_set_state(State.COOLDOWN)
+		State.COOLDOWN:
+			if time >= cooldown:
+				_set_state(State.IDLE)
+	queue_redraw()
+
+## 看得见：小星活着、在射程里、中间没有墙。
+func _can_see(player: Player) -> bool:
+	if player == null or player.state != Player.State.ACTIVE:
+		return false
+	if global_position.distance_to(player.global_position) > range_px:
+		return false
+	var query := PhysicsRayQueryParameters2D.create(global_position, player.global_position, Layers.WALLS)
+	return get_world_2d().direct_space_state.intersect_ray(query).is_empty()
+
+func _touching(player: Player) -> bool:
+	if player == null or player.state != Player.State.ACTIVE:
+		return false
+	return global_position.distance_to(player.global_position) < radius + Player.RADIUS + 2.0
+
+func _fire() -> void:
+	_set_state(State.FIRE)
+	if not is_inside_tree():
+		return
+	var shot := SHOT_SCENE.instantiate() as Shot
+	shot.direction = aim_dir
+	shot.global_position = global_position + aim_dir * (radius + 14.0)
+	get_parent().add_child(shot)
+	Audio.play(&"hit")
+
+## 死：一团碎片，然后从场上消失。谁打死的记在 Game 的信号里。
+func _kill(reason: StringName) -> void:
+	if not is_inside_tree():
+		return
+	Debris.spawn(get_parent(), global_position, EDGE_COLOR, 14, 240.0, 6.0, true)
+	Game.enemy_killed.emit(reason)
+	Audio.play(&"burn")
+	queue_free()
+
+func _set_state(next: State) -> void:
+	state = next
+	time = 0.0
+	queue_redraw()
+
+func _draw() -> void:
+	if Engine.is_editor_hint():
+		draw_circle(Vector2.ZERO, radius, Color(BODY_COLOR, 0.9))
+		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 24, EDGE_COLOR, 2.0, true)
+		return
+	var eye := 3.0
+	match state:
+		State.AIM:
+			var k := clampf(time / maxf(aim_time, 0.01), 0.0, 1.0)
+			eye = lerpf(3.0, 6.0, k)
+			# 红线：从身子边缘指向小星，越长越亮，最后一刻最亮
+			var from := aim_dir * (radius + 2.0)
+			var to := aim_dir * (radius + 40.0 + 260.0 * k)
+			draw_line(from, to, Color(EYE_COLOR, 0.15 + 0.5 * k), 1.0 + 2.0 * k)
+		State.COOLDOWN:
+			eye = 2.0
+	draw_circle(Vector2.ZERO, radius, BODY_COLOR)
+	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 24, EDGE_COLOR, 2.0, true)
+	draw_circle(Vector2.ZERO, eye, EYE_COLOR)

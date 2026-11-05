@@ -26,6 +26,7 @@ func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.player_hit.connect(_on_hit)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	_pure_checks()
 	# 用例中途脚本报错时协程会提前结束，这里拿不到 true。
 	var finished: Variant = await _wall_cases()

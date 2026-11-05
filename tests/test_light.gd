@@ -217,6 +217,7 @@ func _cases() -> bool:
 	await _frames(60)
 	var focus_loss := before - _player.light
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	_check("散射每秒衰减 1，聚光每秒衰减 1.5", absf(scatter_loss - 1.0) < 0.05 and absf(focus_loss - 1.5) < 0.05, "%.2f / %.2f" % [scatter_loss, focus_loss])
 
 	# 检查点。

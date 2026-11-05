@@ -17,6 +17,7 @@ var _postman: Npc
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 	Save.mail[DOCTOR_ID] = &"doctor"
 	Game.wall_broken.connect(func(_id: String) -> void: _broken += 1)

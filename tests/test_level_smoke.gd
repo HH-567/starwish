@@ -7,6 +7,7 @@ const LEVELS := ["res://scenes/levels/test_feel.tscn", "res://scenes/levels/test
 
 func _ready() -> void:
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	var ok := true
 	for path in LEVELS:
 		var passed: bool = await _run(path)

@@ -17,6 +17,7 @@ func _ready() -> void:
 	# 测试里死亡不重载场景。
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	# 这条测的是机制，不是平衡：速度、间距固定成写测试时的值，改 tuning 不该让它红。
 	Game.tuning.boss_speed = 790.0
 	Game.tuning.boss_gap_start = 500.0

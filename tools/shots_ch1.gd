@@ -14,6 +14,8 @@ const POSES := [
 	[Vector2i(52, 21), 1, Vector2.UP, 80],       # 玻璃房和窗后的医生
 	[Vector2i(44, 20), 0, Vector2.RIGHT, 30],
 	[Vector2i(61, 21), 0, Vector2.RIGHT, 30],
+	[Vector2i(112, 20), 0, Vector2.RIGHT, 90],   # 影鬼 (120,6) 的客厅门口
+	[Vector2i(150, 22), 0, Vector2.RIGHT, 90],   # 影鬼 (160,22) 边上
 ]
 
 func _ready() -> void:

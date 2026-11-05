@@ -12,6 +12,7 @@ var _touch: Control
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 	add_child((load(LEVEL) as PackedScene).instantiate())
 	_player = get_tree().get_first_node_in_group(&"player") as Player

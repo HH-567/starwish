@@ -15,6 +15,7 @@ var _meteor_hit := false
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 	Game.player_hit.connect(_on_hit)
 	_player = PLAYER_SCENE.instantiate() as Player

@@ -37,6 +37,7 @@ const LEVELS := [
 	["res://tools/ch4_map.txt", "res://scenes/levels/ch4_pair.tscn", "Ch4Pair", &"ch4", true, "res://tools/ch4_lane.txt"],
 	["res://tools/test_feel_map.txt", "res://scenes/levels/test_feel.tscn", "TestFeel", &"test_feel", false, "res://tools/test_feel_lane.txt"],
 	["res://tools/test_light_map.txt", "res://scenes/levels/test_light.tscn", "TestLight", &"test_light", true, "res://tools/test_light_lane.txt"],
+	["res://tools/test_enemy_map.txt", "res://scenes/levels/test_enemy.tscn", "TestEnemy", &"test_enemy", false, "res://tools/test_feel_lane.txt"],
 ]
 const FINALE_INTRO := "res://tools/finale_intro.txt"
 const FINALE_OUTRO := "res://tools/finale_outro.txt"
@@ -66,6 +67,7 @@ const SCENES := {
 	"'": "res://scenes/entities/breadcrumb.tscn",
 	"+": "res://scenes/entities/meteor.tscn",
 	"=": "res://scenes/entities/blackhole.tscn",
+	"x": "res://scenes/entities/enemy.tscn",
 }
 ## 小人的图例 → 职业。
 const ROLES := {
@@ -78,7 +80,7 @@ const MARKERS := {"S": ["PlayerStart", 0.5], "Q": ["BossStart", 0.5], "R": ["Ent
 const PARTS := {"l": "watchman", "f": "gardener", "T": "miner"}
 const STRIP_ANGLE := {">": 0.0, "v": PI / 2.0, "<": PI, "^": -PI / 2.0}
 ## 这些一格一个实体，不和相邻的同种格子合并。
-const SINGLE := "/\\*Kl+='"
+const SINGLE := "/\\*Kl+='x"
 
 func _ready() -> void:
 	var tiles := _load_or_make_tileset()

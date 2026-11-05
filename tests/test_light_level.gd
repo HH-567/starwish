@@ -15,6 +15,7 @@ var _arrived_at := Vector2.ZERO
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 	Game.npc_rescued.connect(func(_id: String) -> void: _events.append(&"rescued"))
 	Game.vine_burnt.connect(func(_id: String) -> void: _events.append(&"burnt"))

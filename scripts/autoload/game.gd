@@ -15,6 +15,8 @@ signal chapter_cleared(chapter_id: StringName)
 signal warped
 signal help_triggered(role: StringName)
 signal boss_state_changed(state: int)
+## 影鬼被打掉了。reason：&"charge"（小星撞散）或 &"shot"（弹幕打中）。
+signal enemy_killed(reason: StringName)
 signal debug_changed
 
 enum Flow { BOOT, TITLE, LOADING, PLAYING, CHASE, PAUSED, RESPAWN, CLEAR, ENDING }
@@ -59,6 +61,8 @@ const CLEAR_TIME := 0.8
 
 var tuning: Tuning = preload(TUNING_PATH)
 var debug_no_decay := false
+## 测试用：关掉影鬼的行动，免得它们打乱"亮度应该是多少"这类断言。
+var debug_no_enemies := false
 var debug_panel := true
 ## 直接运行关卡或测试时一开始就是 PLAYING；从标题进来时 Title 调 enter_title()。
 var flow := Flow.PLAYING

@@ -109,6 +109,24 @@ extends Resource
 ## 科学家：从他的虫洞出来后一路冲回去多久。这段时间不听方向键，速度不变，以阶段 5 撞上噬光者就能撞碎它。
 @export var charge_time := 1.5
 
+@export_group("影鬼")
+## 影鬼看得见小星的距离。再远就不理你。
+@export var enemy_range := 420.0
+## 看见之后瞄多久才开火（秒）。红线就是这段时间画出来的。
+@export var enemy_aim_time := 0.6
+## 开完一枪歇多久。
+@export var enemy_cooldown := 2.4
+## 影鬼的身位半径，也是"小星贴上来"的判定半径。
+@export var enemy_radius := 16.0
+## 弹幕速度、打到小星扣多少亮度、能弹几次墙。
+@export var shot_speed := 520.0
+@export var shot_damage := 15.0
+## 弹幕打到小星时推的这一下（px/s，直接加在速度上）。
+@export var shot_knockback := 260.0
+@export var shot_bounces := 3
+## 弹幕最长活多久（弹不出去时兜底）。
+@export var shot_life := 5.0
+
 ## 某一档的顶：下一档的下限减 1；阶段 5 的顶是 max_speed。
 func stage_top(stage: int) -> float:
 	if stage >= 5:

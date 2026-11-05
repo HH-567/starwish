@@ -15,6 +15,7 @@ var _failures := 0
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 
 	var roles: Array[String] = []

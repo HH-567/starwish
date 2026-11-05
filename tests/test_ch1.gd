@@ -13,6 +13,7 @@ var _cleared := 0
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 	Game.vine_burnt.connect(func(_id: String) -> void: _burnt += 1)
 	Game.chapter_cleared.connect(func(_c: StringName) -> void: _cleared += 1)

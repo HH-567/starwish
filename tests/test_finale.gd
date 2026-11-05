@@ -83,6 +83,7 @@ class Runner extends Node:
 
 		# 全救了：拼接、帮助点、隧道、开头锁住、检查点、帮助的效果、复活、正常结局。
 		Game.debug_no_decay = true
+		Game.debug_no_enemies = true
 		_rescue_all()
 		_check("全救了", Game.everyone_rescued())
 		_check("打开终章", await _open())

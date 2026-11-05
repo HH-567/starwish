@@ -10,6 +10,7 @@ const PLAYER := 1 << 5
 const TRIGGER := 1 << 6
 const BOSS := 1 << 7
 const BARS := 1 << 8
+const ENEMY := 1 << 9
 
 ## 挡光的墙，也是视线射线的 mask。
 const WALLS := WORLD | CRACKED | MIRROR | PAD | VINE

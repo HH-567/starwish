@@ -14,6 +14,7 @@ var _cleared := 0
 func _ready() -> void:
 	Game.player_died.disconnect(Game._on_player_died)
 	Game.debug_no_decay = true
+	Game.debug_no_enemies = true
 	Save.clear()
 	Game.warped.connect(func() -> void:
 		_warps += 1
