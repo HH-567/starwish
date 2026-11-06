@@ -8,6 +8,12 @@ const COLOR := Color("8fd3ff")
 const FLOWER := Color("ffb7d5")
 const CHEVRON_GAP := 24.0
 const FLOWER_GAP := 20.0
+## 园丁的花有美术图时直接平铺它。
+const FLOWER_ART := "res://assets/art/level/flower_accel.png"
+const ARROW_ART := "res://assets/art/level/accel_arrow.png"
+
+var _flower_tex: Texture2D
+var _arrow_tex: Texture2D
 
 ## x = 沿方向的长度，y = 宽度。
 @export var size := Vector2(64.0, 192.0):
@@ -56,6 +62,10 @@ func _apply() -> void:
 	visible = deployed
 	collision_layer = Layers.TRIGGER if deployed else 0
 	monitoring = deployed
+	if _flower_tex == null and ResourceLoader.exists(FLOWER_ART):
+		_flower_tex = load(FLOWER_ART) as Texture2D
+	if _arrow_tex == null and ResourceLoader.exists(ARROW_ART):
+		_arrow_tex = load(ARROW_ART) as Texture2D
 	queue_redraw()
 
 func _process(delta: float) -> void:
@@ -74,6 +84,17 @@ func _on_body_entered(body: Node2D) -> void:
 func _draw() -> void:
 	var half := size * 0.5
 	var c := FLOWER if flowers else COLOR
+	# 有美术图就平铺美术图，没有就画原来的几何图形。
+	if flowers and _flower_tex != null:
+		draw_texture_rect(_flower_tex, Rect2(-half, size), true)
+		if _appear > 0.0:
+			draw_rect(Rect2(-half, size), Color(1, 1, 1, 0.55 * (_appear / 0.4)), true)
+		return
+	if not flowers and _arrow_tex != null:
+		draw_texture_rect(_arrow_tex, Rect2(-half, size), true)
+		if _appear > 0.0:
+			draw_rect(Rect2(-half, size), Color(1, 1, 1, 0.55 * (_appear / 0.4)), true)
+		return
 	draw_rect(Rect2(-half, size), Color(c, 0.12))
 	for i in maxi(int(size.x / CHEVRON_GAP), 1):
 		var x := -half.x + fposmod(i * CHEVRON_GAP + _t * 60.0, size.x)

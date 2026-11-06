@@ -32,6 +32,9 @@ var _slow_left := 0.0
 var _touching := false
 var _t := 0.0
 var _aura: Node2D
+## 美术图：有就用 128×128 的像素暗块，没有就画原来的几何黑影。
+var _art: Sprite2D
+const ART := "res://assets/art/boss/devourer.png"
 
 func _ready() -> void:
 	add_to_group(&"boss")
@@ -43,6 +46,14 @@ func _ready() -> void:
 	_aura.material = Lighting.unshaded()
 	_aura.draw.connect(_draw_aura)
 	add_child(_aura)
+	if ResourceLoader.exists(ART):
+		var tex := load(ART) as Texture2D
+		if tex != null:
+			_art = Sprite2D.new()
+			_art.texture = tex
+			_art.material = Lighting.unshaded()
+			_art.scale = Vector2.ONE * (RADIUS * 2.0 / maxf(tex.get_width(), 1.0))
+			add_child(_art)
 
 ## 在 at 出现，time 秒后开始追 player。终章开头和复活时调用。
 func emerge(player: Player, at: Vector2, time := EMERGE_TIME) -> void:
@@ -98,6 +109,12 @@ func gap() -> float:
 func _physics_process(delta: float) -> void:
 	_t += delta
 	_state_t += delta
+	if _art != null:
+		# 图跟着状态放大淡入；碎了就别画了，交给碎片。
+		var s := _scale()
+		_art.visible = s > 0.0
+		_art.modulate.a = clampf(s, 0.0, 1.0)
+		_art.scale = Vector2.ONE * (RADIUS * 2.0 * maxf(s, 0.01) / maxf(_art.texture.get_width(), 1.0))
 	match state:
 		State.EMERGE:
 			if _state_t >= _emerge_time:
@@ -190,6 +207,8 @@ func _scale() -> float:
 func _draw() -> void:
 	var s := _scale()
 	if s <= 0.0:
+		return
+	if _art != null:
 		return
 	# 一团黑影，边上有几条慢慢摆动的触手。
 	draw_circle(Vector2.ZERO, RADIUS * s, BODY)

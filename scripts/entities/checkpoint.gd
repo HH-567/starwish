@@ -14,6 +14,8 @@ var state := State.INACTIVE
 var save_id := ""
 
 var _lamp: PointLight2D
+## 美术图：熄灭/点亮两张，有图就换掉几何画法。
+var _art: Sprite2D
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -31,6 +33,22 @@ func _ready() -> void:
 	body_entered.connect(_on_body_entered)
 	Game.checkpoint_reached.connect(_on_checkpoint_reached)
 
+## 点亮时换成「灯亮着」的那张。
+func _load_art() -> void:
+	var path := "res://assets/art/items/checkpoint_on.png" if state == State.ACTIVE else "res://assets/art/items/checkpoint_off.png"
+	if not ResourceLoader.exists(path):
+		return
+	var tex := load(path) as Texture2D
+	if tex == null:
+		return
+	if _art != null:
+		_art.queue_free()
+	_art = Sprite2D.new()
+	_art.texture = tex
+	_art.material = Lighting.unshaded()
+	_art.position = Vector2(0, SIZE.y * 0.5 - tex.get_height() * 0.5)
+	add_child(_art)
+
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player and state == State.INACTIVE:
 		Save.checkpoint = save_id
@@ -44,9 +62,12 @@ func _on_checkpoint_reached(id: String) -> void:
 func _set_state(next: State) -> void:
 	state = next
 	_lamp.visible = next == State.ACTIVE
+	_load_art()
 	queue_redraw()
 
 func _draw() -> void:
+	if _art != null:
+		return
 	# 灯柱加一盏菱形的灯。
 	var lit := state == State.ACTIVE
 	var c := LIT if lit else Color(IDLE, 0.6)
