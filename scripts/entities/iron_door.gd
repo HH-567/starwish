@@ -9,6 +9,10 @@ enum State { CLOSED, OPEN }
 
 const COLOR := Color("2c3350")
 const EDGE := Color("8a93b8")
+## 美术图：128×32 的横向闸门，按碰撞盒拉伸。
+const ART := "res://assets/art/level/iron_door.png"
+
+var _art: Sprite2D
 
 @export var size := Vector2(96.0, 32.0):
 	set(value):
@@ -30,11 +34,24 @@ func _ready() -> void:
 	collision_mask = 0
 	Shapes.add_rect(self, size)
 	Shapes.add_occluder(self, size)
+	_load_art()
 	var edge := Node2D.new()
 	edge.material = Lighting.unshaded()
 	edge.draw.connect(_draw_edge.bind(edge, Color(EDGE, 0.5)))
 	add_child(edge)
 	Game.npc_rescued.connect(_on_npc_rescued)
+
+func _load_art() -> void:
+	if not ResourceLoader.exists(ART):
+		return
+	var tex := load(ART) as Texture2D
+	if tex == null:
+		return
+	_art = Sprite2D.new()
+	_art.texture = tex
+	_art.material = Lighting.unshaded()
+	_art.scale = size / Vector2(tex.get_width(), tex.get_height())
+	add_child(_art)
 
 func open() -> void:
 	if state == State.OPEN:
@@ -49,6 +66,8 @@ func _on_npc_rescued(id: String) -> void:
 		open()
 
 func _draw() -> void:
+	if _art != null:
+		return
 	draw_rect(Rect2(-size * 0.5, size), COLOR)
 	if Engine.is_editor_hint():
 		_draw_edge(self, EDGE)
