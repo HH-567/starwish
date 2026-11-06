@@ -20,6 +20,10 @@ const AIM_DEADZONE := 4.0
 const TOUCH_AIM_DEADZONE := 0.25
 const TRAIL_POINTS := 22
 const GLOW_TEX := 256
+## 美术图：星体 / 受伤闪白 / 外圈光晕。有图就用图，没有就走原来的几何画法。
+const ART_BODY := "res://assets/art/players/star_body.png"
+const ART_HURT := "res://assets/art/players/star_hurt.png"
+const ART_GLOW := "res://assets/art/players/star_bloom.png"
 ## 星体周围那圈光晕的半径。亮度看光环（StarLight 画的圆）。
 const CORONA := 40.0
 const STAR_COLOR := Color("ffd75a")
@@ -49,6 +53,9 @@ var charged := false
 var charge_left := 0.0
 
 var _state_time := 0.0
+## 有美术图时的星体精灵（受伤闪白用第二张）。
+var _art: Sprite2D
+var _art_hurt: Sprite2D
 var _spin := 0.0
 var _trail_points: Array[Vector2] = []
 var _warp_to := Vector2.ZERO
@@ -382,12 +389,40 @@ func _setup_visuals() -> void:
 	tex.fill_to = Vector2(1.0, 0.5)
 	tex.width = GLOW_TEX
 	tex.height = GLOW_TEX
+	# 光晕用程序生成的径向渐变：美术图是阶梯色块的圆形，叠在暗场里会露出方形边界。
 	_glow.texture = tex
 	var mat := CanvasItemMaterial.new()
 	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	_glow.material = mat
 	_glow.scale = Vector2.ONE * CORONA / (GLOW_TEX * 0.5)
+	# 星体美术图：本体 + 受伤闪白两张，叠在光晕上面。
+	if ResourceLoader.exists(ART_BODY):
+		var body := load(ART_BODY) as Texture2D
+		if body != null:
+			_art = Sprite2D.new()
+			_art.texture = body
+			add_child(_art)
+	if ResourceLoader.exists(ART_HURT):
+		var hurt := load(ART_HURT) as Texture2D
+		if hurt != null:
+			_art_hurt = Sprite2D.new()
+			_art_hurt.texture = hurt
+			_art_hurt.visible = false
+			add_child(_art_hurt)
+
+## 星体精灵跟着状态走：淡入淡出、自转、受伤时闪白。
+func _sync_art(a: float) -> void:
+	if _art == null:
+		return
+	var flash := hurt_left > 0.0 and fmod(hurt_left, 0.1) < 0.05
+	_art.visible = a > 0.0
+	_art.modulate.a = a * (0.35 if flash else 1.0)
+	_art.rotation = _spin
+	if _art_hurt != null:
+		_art_hurt.visible = a > 0.0 and flash
+		_art_hurt.modulate.a = a
+		_art_hurt.rotation = _spin
 
 func _update_visuals() -> void:
 	# 拖尾记录全局坐标，每帧换算成本地坐标交给 Line2D。
@@ -405,6 +440,7 @@ func _update_visuals() -> void:
 	_trail.gradient.set_color(0, Color(c, 0.85))
 	_trail.gradient.set_color(1, Color(c, 0.0))
 	_glow.modulate.a = fade()
+	_sync_art(fade())
 	queue_redraw()
 
 ## 星体和光的不透明度：出生淡入、熄灭淡出；碎裂和传送途中直接消失。
@@ -421,6 +457,9 @@ func fade() -> float:
 	return 1.0
 
 func _draw() -> void:
+	# 有美术图就只画光晕之类的附加物，星体交给精灵。
+	if _art != null:
+		return
 	# 碎掉的时候碎片接手，星体自己不画；熄灭是慢慢化开，星体要一直画到淡没。
 	if state == State.DYING and death_cause != Death.EXTINGUISHED:
 		return
