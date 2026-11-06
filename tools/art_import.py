@@ -60,6 +60,29 @@ def key_green(img: Image.Image) -> Image.Image:
     return img
 
 
+def key_magenta(img: Image.Image) -> Image.Image:
+    """纯品红底（#FF00FF）→ 抠掉并去品红溢色。比绿底更适合暖色/蓝色系的图。"""
+    img = img.convert("RGBA")
+    px = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, _ = px[x, y]
+            # 品红度：红蓝都高、绿最低
+            magentaness = min(r, b) - g
+            if magentaness <= 12:
+                alpha = 255
+            elif magentaness >= 80:
+                alpha = 0
+            else:
+                alpha = int(255 * (1.0 - (magentaness - 12) / 68.0))
+            if alpha == 0:
+                px[x, y] = (0, 0, 0, 0)
+                continue
+            px[x, y] = (min(r, max(g, 0) + 24), g, min(b, max(g, 0) + 24), alpha)
+    return img
+
+
 def trim(img: Image.Image, pad: int = MAX_PAD) -> Image.Image:
     box = img.getbbox()
     if box is None:
@@ -86,7 +109,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="美术图后处理：抠背景、裁边、缩尺寸")
     ap.add_argument("source")
     ap.add_argument("name", help="目标名，可带子目录，如 characters/npc_watchman")
-    ap.add_argument("--mode", choices=["black", "green"], required=True)
+    ap.add_argument("--mode", choices=["black", "green", "magenta"], required=True)
     ap.add_argument("--size", type=int, default=0, help="最长边缩到多少 px；0 = 不缩")
     ap.add_argument("--pixel", action="store_true", help="用最近邻缩放（像素风）")
     ap.add_argument("--no-trim", action="store_true")
@@ -94,7 +117,12 @@ def main() -> None:
     args = ap.parse_args()
 
     img = Image.open(args.source)
-    img = key_black(img) if args.mode == "black" else key_green(img)
+    if args.mode == "black":
+        img = key_black(img)
+    elif args.mode == "green":
+        img = key_green(img)
+    else:
+        img = key_magenta(img)
     if not args.no_trim:
         img = trim(img)
     if args.size > 0:
