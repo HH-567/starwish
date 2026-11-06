@@ -18,6 +18,10 @@ const RING_RADIUS := 17.0
 const LAMP := 72.0
 ## 梦想浮现要多久，秒。
 const DREAM_TIME := 0.8
+## 美术图：assets/art/characters/npc_<职业>.png。没有图就退回原来的几何画法（两种都能跑）。
+const ART_DIR := "res://assets/art/characters/"
+## 图是 32×32 的剪影，脚底在画布中心偏下，往上挪一点和原来的小人脚底对齐。
+const ART_OFFSET := Vector2(0.0, -7.0)
 
 ## 职业：决定外观、浮现的画面和帮助（docs/level-data-format.md 第 7 节）。
 @export_enum("none", "watchman", "gardener", "doctor", "painter", "guide", "miner", "locksmith", "postman", "musician", "listener", "clockmaker", "scientist") var role := "none":
@@ -45,6 +49,8 @@ var _t := 0.0
 var _dream_t := 0.0
 var _aura: Node2D
 var _lamp: PointLight2D
+## 有美术图时用它，没有就是 null（走 _draw 里的几何小人）。
+var _art: Sprite2D
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -52,6 +58,7 @@ func _ready() -> void:
 	add_to_group(&"npc")
 	add_to_group(&"light_receiver")
 	save_id = Save.id_of(self)
+	_load_art()
 	_t = randf() * WAVE_PERIOD
 	_aura = Node2D.new()
 	_aura.material = Lighting.unshaded()
@@ -132,10 +139,31 @@ func _set_state(next: State) -> void:
 		progress = need()
 		# 被救后自己发光，变成一个小光源。
 		material = Lighting.unshaded()
+		if _art != null:
+			_art.material = Lighting.unshaded()
 		_lamp.visible = true
 	queue_redraw()
 
+## 有美术图就用图：图跟着节点一起被光照（暗处看不见，被照亮才露出来），
+## 救了之后换成自己发光。没图就什么都不做，下面的 _draw 照常画几何小人。
+func _load_art() -> void:
+	var key := "npc_base" if role == "none" else "npc_" + role
+	var path := ART_DIR + key + ".png"
+	if not ResourceLoader.exists(path):
+		return
+	var tex := load(path) as Texture2D
+	if tex == null:
+		return
+	_art = Sprite2D.new()
+	_art.texture = tex
+	_art.position = ART_OFFSET
+	add_child(_art)
+	if state == State.RESCUED:
+		_art.material = Lighting.unshaded()
+
 func _draw() -> void:
+	if _art != null:
+		return
 	draw_figure(self, state == State.RESCUED)
 
 ## 白色小人：头和身体。哭的时候缩成一团，被救后站直（up）。终章的帮助点也用它画。

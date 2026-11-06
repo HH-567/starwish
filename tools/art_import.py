@@ -105,6 +105,20 @@ def fit(img: Image.Image, size: int, pixel: bool) -> Image.Image:
     return canvas
 
 
+def add_rim(img: Image.Image, color: tuple, width: int = 1) -> Image.Image:
+    """给剪影描一圈暖色边：暗背景上也能看见人形（这是 docs 里要求的 1px 暖金描边）。
+    做法是把 alpha 往外扩 width 像素当描边，再把原图盖回去。"""
+    from PIL import ImageFilter
+
+    alpha = img.split()[3]
+    grown = alpha.filter(ImageFilter.MaxFilter(width * 2 + 1))
+    rim = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    rim.putalpha(grown)
+    rim.paste(Image.new("RGBA", img.size, (color[0], color[1], color[2], 255)), (0, 0), grown)
+    rim.alpha_composite(img)
+    return rim
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="美术图后处理：抠背景、裁边、缩尺寸")
     ap.add_argument("source")
@@ -112,6 +126,7 @@ def main() -> None:
     ap.add_argument("--mode", choices=["black", "green", "magenta"], required=True)
     ap.add_argument("--size", type=int, default=0, help="最长边缩到多少 px；0 = 不缩")
     ap.add_argument("--pixel", action="store_true", help="用最近邻缩放（像素风）")
+    ap.add_argument("--rim", default="", help="给剪影描一圈边，色值如 ffB454")
     ap.add_argument("--no-trim", action="store_true")
     ap.add_argument("--out", default=ART_ROOT)
     args = ap.parse_args()
@@ -127,6 +142,10 @@ def main() -> None:
         img = trim(img)
     if args.size > 0:
         img = fit(img, args.size, args.pixel)
+    if args.rim:
+        hexv = args.rim.lstrip("#")
+        color = (int(hexv[0:2], 16), int(hexv[2:4], 16), int(hexv[4:6], 16))
+        img = add_rim(img, color)
 
     path = os.path.join(args.out, args.name + ".png")
     os.makedirs(os.path.dirname(path), exist_ok=True)
