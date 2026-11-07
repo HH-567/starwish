@@ -7,6 +7,10 @@ extends Area2D
 enum State { OPEN, CLEARED }
 
 const COLOR := Color("ffd75a")
+## 美术图：64×64 的暖金门洞，有图就用图。
+const ART := "res://assets/art/items/exit.png"
+
+var _art: Sprite2D
 
 @export var size := Vector2(64.0, 64.0):
 	set(value):
@@ -25,9 +29,19 @@ func _ready() -> void:
 	monitorable = false
 	Shapes.add_rect(self, size)
 	body_entered.connect(_on_body_entered)
+	if ResourceLoader.exists(ART):
+		var tex := load(ART) as Texture2D
+		if tex != null:
+			_art = Sprite2D.new()
+			_art.texture = tex
+			_art.scale = size / Vector2(tex.get_width(), tex.get_height())
+			add_child(_art)
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _art != null:
+		# 门里那层光呼吸一下，暗处也能注意到。
+		_art.modulate.a = 0.82 + 0.18 * sin(_t * 3.0)
 	queue_redraw()
 
 func _on_body_entered(body: Node2D) -> void:
@@ -39,6 +53,8 @@ func _on_body_entered(body: Node2D) -> void:
 	Game.chapter_cleared.emit(chapter.get("chapter_id") if chapter != null else &"")
 
 func _draw() -> void:
+	if _art != null:
+		return
 	var rect := Rect2(-size * 0.5, size)
 	var pulse := 0.5 + 0.5 * sin(_t * 3.0)
 	draw_rect(rect, Color(COLOR, 0.18 + 0.12 * pulse))

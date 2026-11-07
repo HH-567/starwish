@@ -7,6 +7,10 @@ extends StaticBody2D
 
 const COLOR := Color("9aa6c8")
 const GAP := 8.0
+## 美术图：96×32 的横向栏杆，按碰撞盒拉伸。
+const ART := "res://assets/art/level/bars.png"
+
+var _art: Sprite2D
 
 @export var size := Vector2(96.0, 32.0):
 	set(value):
@@ -19,6 +23,13 @@ func _ready() -> void:
 	collision_layer = Layers.BARS
 	collision_mask = 0
 	Shapes.add_rect(self, size)
+	if ResourceLoader.exists(ART):
+		var tex := load(ART) as Texture2D
+		if tex != null:
+			_art = Sprite2D.new()
+			_art.texture = tex
+			_art.scale = size / Vector2(tex.get_width(), tex.get_height())
+			add_child(_art)
 	var faint := Node2D.new()
 	faint.material = Lighting.unshaded()
 	faint.draw.connect(_draw_bars.bind(faint, Color(COLOR, 0.3)))
@@ -30,6 +41,8 @@ func smash() -> void:
 	queue_free()
 
 func _draw() -> void:
+	if _art != null:
+		return
 	_draw_bars(self, COLOR)
 
 ## 沿长边每隔 GAP 一根栏杆，两条长边是横梁。
