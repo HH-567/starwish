@@ -7,6 +7,10 @@ extends Node2D
 
 const COLOR := Color("b48cff")
 const CORE := Color("141020")
+## 美术图：128×128 紫黑旋涡（黑底转 alpha），有图就用图。
+const ART := "res://assets/art/hazards/blackhole.png"
+
+var _art: Sprite2D
 
 @export var radius := 200.0:
 	set(value):
@@ -25,9 +29,18 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	material = Lighting.unshaded()
+	if ResourceLoader.exists(ART):
+		var tex := load(ART) as Texture2D
+		if tex != null:
+			_art = Sprite2D.new()
+			_art.texture = tex
+			_art.scale = Vector2.ONE * (radius * 2.0 / maxf(tex.get_width(), 1.0))
+			add_child(_art)
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _art != null:
+		_art.rotation = _t * 0.35
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -48,6 +61,10 @@ func _physics_process(delta: float) -> void:
 func _draw() -> void:
 	if Engine.is_editor_hint():
 		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Color(COLOR, 0.35), 2.0, true)
+		return
+	if _art != null:
+		# 只留最外圈作用范围的提示线。
+		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Color(COLOR, 0.12), 1.0, true)
 		return
 	draw_circle(Vector2.ZERO, 26.0, CORE)
 	for k in 3:
