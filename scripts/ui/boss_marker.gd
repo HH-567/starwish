@@ -5,12 +5,17 @@ const EYE := Color("ff5a7a")
 const MARGIN := 28.0
 ## 离小星超过这么远就不画。
 const FAR := 1400.0
+## 美术图：一对红眼睛，有图就贴图，没图画圆。
+const ART := "res://assets/art/ui/boss_eyes.png"
 
+var _tex: Texture2D
 var _t := 0.0
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists(ART):
+		_tex = load(ART) as Texture2D
 
 func _process(delta: float) -> void:
 	_t += delta
@@ -37,6 +42,10 @@ func _draw() -> void:
 	var near := 1.0 - dist / FAR
 	var blink := 0.7 + 0.3 * sin(_t * lerpf(4.0, 14.0, near))
 	var r := lerpf(14.0, 24.0, near)
+	if _tex != null:
+		var box := Vector2(r, r) * 2.0
+		draw_texture_rect(_tex, Rect2(p - box * 0.5, box), false, Color(1, 1, 1, lerpf(0.55, 1.0, near) * blink))
+		return
 	draw_circle(p, r, Color(EYE, 0.18 * blink))
 	# 两只眼睛，横在它过来的方向上。
 	var side := dir.orthogonal() * r * 0.35
