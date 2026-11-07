@@ -106,23 +106,31 @@ func _load_or_make_tileset() -> TileSet:
 	ts.add_custom_data_layer()
 	ts.set_custom_data_layer_name(0, "unbreakable")
 	ts.set_custom_data_layer_type(0, TYPE_BOOL)
-	_add_block(ts, Color("121a33"), Color("2b3a6b"), false)
-	_add_block(ts, Color("070a14"), Color("1a2142"), true)
+	# 普通墙用暗石砖（wall_solid），边界/不可破坏的那档再用亮一点的裂纹砖。
+	_add_block(ts, Color("121a33"), Color("2b3a6b"), false, "res://assets/art/level/wall_solid.png")
+	_add_block(ts, Color("070a14"), Color("1a2142"), true, "res://assets/art/level/wall_solid.png")
+	_add_floor(ts, "res://assets/art/level/floor.png")
 	ResourceSaver.save(ts, TILES_PATH, ResourceSaver.FLAG_CHANGE_PATH)
 	return ts
 
-## 加一个单格图块源：方形渐变贴图 + 整格碰撞 + 整格遮光。
-func _add_block(ts: TileSet, inner: Color, edge: Color, unbreakable: bool) -> void:
-	var gradient := Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.78, 1.0])
-	gradient.colors = PackedColorArray([inner, inner, edge])
-	var tex := GradientTexture2D.new()
-	tex.gradient = gradient
-	tex.fill = GradientTexture2D.FILL_SQUARE
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(1.0, 0.5)
-	tex.width = TILE
-	tex.height = TILE
+## 加一个单格图块源：方形贴图 + 整格碰撞 + 整格遮光。
+## art 给了就用美术图，没给（或文件不在）就退回程序生成的渐变方块。
+func _add_block(ts: TileSet, inner: Color, edge: Color, unbreakable: bool, art := "") -> void:
+	var tex: Texture2D
+	if art != "" and ResourceLoader.exists(art):
+		tex = load(art) as Texture2D
+	if tex == null:
+		var gradient := Gradient.new()
+		gradient.offsets = PackedFloat32Array([0.0, 0.78, 1.0])
+		gradient.colors = PackedColorArray([inner, inner, edge])
+		var g := GradientTexture2D.new()
+		g.gradient = gradient
+		g.fill = GradientTexture2D.FILL_SQUARE
+		g.fill_from = Vector2(0.5, 0.5)
+		g.fill_to = Vector2(1.0, 0.5)
+		g.width = TILE
+		g.height = TILE
+		tex = g
 	var source := TileSetAtlasSource.new()
 	source.texture = tex
 	source.texture_region_size = Vector2i(TILE, TILE)
@@ -137,6 +145,19 @@ func _add_block(ts: TileSet, inner: Color, edge: Color, unbreakable: bool) -> vo
 	occluder.polygon = square
 	data.set_occluder(0, occluder)
 	data.set_custom_data("unbreakable", unbreakable)
+
+## 地面：只贴图，不碰撞、不挡光。
+func _add_floor(ts: TileSet, art: String) -> void:
+	if art == "" or not ResourceLoader.exists(art):
+		return
+	var tex := load(art) as Texture2D
+	if tex == null:
+		return
+	var source := TileSetAtlasSource.new()
+	source.texture = tex
+	source.texture_region_size = Vector2i(TILE, TILE)
+	ts.add_source(source)
+	source.create_tile(Vector2i.ZERO)
 
 ## 章节场景（docs/level-data-format.md 第 2 节）：Level 是关卡区，ChaseLane 是回程赛道，生成在关卡区下面。
 func _build_chapter(tiles: TileSet, spec: Array) -> Error:
