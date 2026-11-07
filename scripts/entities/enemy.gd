@@ -52,6 +52,8 @@ func _load_art() -> void:
 		_tex_idle = load(ART_IDLE) as Texture2D
 	if ResourceLoader.exists(ART_AIM):
 		_tex_aim = load(ART_AIM) as Texture2D
+	if ResourceLoader.exists(ART_FIRE):
+		_tex_fire = load(ART_FIRE) as Texture2D
 	if _tex_idle == null and _tex_aim == null:
 		return
 	_art = Sprite2D.new()
@@ -132,13 +134,15 @@ func _kill(reason: StringName) -> void:
 	Audio.play(&"burn")
 	queue_free()
 
-## 美术图：待机 / 瞄准两张 32×32 剪影，有图就用图（瞄准那张同时用于开火）。
+## 美术图：待机 / 瞄准 / 开火三张 32×32 剪影。
 const ART_IDLE := "res://assets/art/enemies/shade_idle.png"
 const ART_AIM := "res://assets/art/enemies/shade_aim.png"
+const ART_FIRE := "res://assets/art/enemies/shade_fire.png"
 
 var _art: Sprite2D
 var _tex_idle: Texture2D
 var _tex_aim: Texture2D
+var _tex_fire: Texture2D
 
 func _set_state(next: State) -> void:
 	state = next
@@ -149,7 +153,11 @@ func _set_state(next: State) -> void:
 func _sync_art() -> void:
 	if _art == null:
 		return
-	var tex := _tex_aim if state == State.AIM or state == State.FIRE else _tex_idle
+	var tex := _tex_idle
+	if state == State.FIRE and _tex_fire != null:
+		tex = _tex_fire
+	elif (state == State.AIM or state == State.FIRE) and _tex_aim != null:
+		tex = _tex_aim
 	if tex != null and _art.texture != tex:
 		_art.texture = tex
 
