@@ -9,6 +9,13 @@ enum State { INTACT, BURNING, BURNT }
 const COLOR := Color("1c1026")
 const STRAND := Color("6a3d8f")
 const EMBER := Color("ff8a3d")
+## 美术图：完整 / 正在烧两张，按尺寸拉伸。
+const ART_INTACT := "res://assets/art/level/vine.png"
+const ART_BURNING := "res://assets/art/level/vine_burning.png"
+
+var _art: Sprite2D
+var _tex_intact: Texture2D
+var _tex_burning: Texture2D
 
 @export var size := Vector2(32.0, 96.0):
 	set(value):
@@ -39,6 +46,28 @@ func _ready() -> void:
 	_aura.material = Lighting.unshaded()
 	_aura.draw.connect(_draw_aura)
 	add_child(_aura)
+	_load_art()
+
+## 有美术图就用图：烧的时候换成"烧穿"那张。
+func _load_art() -> void:
+	if ResourceLoader.exists(ART_INTACT):
+		_tex_intact = load(ART_INTACT) as Texture2D
+	if ResourceLoader.exists(ART_BURNING):
+		_tex_burning = load(ART_BURNING) as Texture2D
+	if _tex_intact == null:
+		return
+	_art = Sprite2D.new()
+	_art.texture = _tex_intact
+	_art.scale = size / Vector2(_tex_intact.get_width(), _tex_intact.get_height())
+	add_child(_art)
+
+func _sync_art() -> void:
+	if _art == null:
+		return
+	var tex := _tex_burning if state == State.BURNING and _tex_burning != null else _tex_intact
+	if _art.texture != tex:
+		_art.texture = tex
+		_art.scale = size / Vector2(tex.get_width(), tex.get_height())
 
 func receive_light(mode: int, _delta: float) -> void:
 	if mode == Player.LightMode.FOCUS:
@@ -64,6 +93,7 @@ func _physics_process(delta: float) -> void:
 			_burn_out()
 			return
 	_aura.queue_redraw()
+	_sync_art()
 
 ## 阶段 5 撞上也会断。
 func smash() -> void:
@@ -94,6 +124,8 @@ func _strands() -> Array[PackedVector2Array]:
 	return lines
 
 func _draw() -> void:
+	if _art != null:
+		return
 	draw_rect(Rect2(-size * 0.5, size), COLOR)
 	if Engine.is_editor_hint():
 		for pts in _strands():

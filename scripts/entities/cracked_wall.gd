@@ -5,6 +5,15 @@ extends StaticBody2D
 ## 裂缝自己微微发光，暗处也认得出。
 
 const COLOR := Color("4a3d5c")
+## 美术图：64×64 的裂纹石砖（完好 / 裂开两张），按 size 拉伸。
+const ART_INTACT := "res://assets/art/level/crack_wall.png"
+const ART_BROKEN := "res://assets/art/level/crack_wall_broken.png"
+
+var _art: Sprite2D
+var _tex_intact: Texture2D
+var _tex_broken: Texture2D
+## 撞过一次但没碎的时候用裂开那张。
+var cracked := false
 
 @export var size := Vector2(64.0, 64.0):
 	set(value):
@@ -28,6 +37,19 @@ func _ready() -> void:
 	cracks.material = Lighting.unshaded()
 	cracks.draw.connect(_draw_cracks.bind(cracks, Color(COLOR.lightened(0.55), 0.55)))
 	add_child(cracks)
+	_load_art()
+
+func _load_art() -> void:
+	if ResourceLoader.exists(ART_INTACT):
+		_tex_intact = load(ART_INTACT) as Texture2D
+	if ResourceLoader.exists(ART_BROKEN):
+		_tex_broken = load(ART_BROKEN) as Texture2D
+	if _tex_intact == null:
+		return
+	_art = Sprite2D.new()
+	_art.texture = _tex_intact
+	_art.scale = size / Vector2(_tex_intact.get_width(), _tex_intact.get_height())
+	add_child(_art)
 
 func smash() -> void:
 	collision_layer = 0
@@ -37,6 +59,8 @@ func smash() -> void:
 	queue_free()
 
 func _draw() -> void:
+	if _art != null:
+		return
 	var rect := Rect2(-size * 0.5, size)
 	draw_rect(rect, COLOR)
 	draw_rect(rect, COLOR.lightened(0.3), false, 2.0)

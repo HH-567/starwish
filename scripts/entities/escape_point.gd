@@ -7,6 +7,10 @@ extends Area2D
 enum State { OPEN, REACHED }
 
 const COLOR := Color("ffe9b0")
+## 美术图：64×160 的竖直光柱，按 size 拉伸。
+const ART := "res://assets/art/items/escape_point.png"
+
+var _art: Sprite2D
 
 @export var size := Vector2(64.0, 160.0):
 	set(value):
@@ -26,9 +30,18 @@ func _ready() -> void:
 	Shapes.add_rect(self, size)
 	add_child(Lighting.point_light(260.0, COLOR, 0.9))
 	body_entered.connect(_on_body_entered)
+	if ResourceLoader.exists(ART):
+		var tex := load(ART) as Texture2D
+		if tex != null:
+			_art = Sprite2D.new()
+			_art.texture = tex
+			_art.scale = size / Vector2(tex.get_width(), tex.get_height())
+			add_child(_art)
 
 func _process(delta: float) -> void:
 	_t += delta
+	if _art != null:
+		_art.modulate.a = 0.85 + 0.15 * sin(_t * 2.2)
 	queue_redraw()
 
 func _on_body_entered(body: Node2D) -> void:
@@ -43,6 +56,8 @@ func _on_body_entered(body: Node2D) -> void:
 		boss.retreat()
 
 func _draw() -> void:
+	if _art != null:
+		return
 	# 几道竖着的光，慢慢起伏。
 	var rect := Rect2(-size * 0.5, size)
 	var pulse := 0.5 + 0.5 * sin(_t * 2.0)
