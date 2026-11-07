@@ -43,7 +43,20 @@ func _ready() -> void:
 	collision_layer = Layers.ENEMY
 	collision_mask = 0
 	Shapes.add_rect(self, Vector2(radius * 2.0, radius * 2.0))
+	_load_art()
 	_set_state(State.IDLE)
+
+## 有美术图就挂一个 Sprite，状态切换时换图。
+func _load_art() -> void:
+	if ResourceLoader.exists(ART_IDLE):
+		_tex_idle = load(ART_IDLE) as Texture2D
+	if ResourceLoader.exists(ART_AIM):
+		_tex_aim = load(ART_AIM) as Texture2D
+	if _tex_idle == null and _tex_aim == null:
+		return
+	_art = Sprite2D.new()
+	_art.texture = _tex_idle if _tex_idle != null else _tex_aim
+	add_child(_art)
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
@@ -119,15 +132,38 @@ func _kill(reason: StringName) -> void:
 	Audio.play(&"burn")
 	queue_free()
 
+## 美术图：待机 / 瞄准两张 32×32 剪影，有图就用图（瞄准那张同时用于开火）。
+const ART_IDLE := "res://assets/art/enemies/shade_idle.png"
+const ART_AIM := "res://assets/art/enemies/shade_aim.png"
+
+var _art: Sprite2D
+var _tex_idle: Texture2D
+var _tex_aim: Texture2D
+
 func _set_state(next: State) -> void:
 	state = next
 	time = 0.0
+	_sync_art()
 	queue_redraw()
+
+func _sync_art() -> void:
+	if _art == null:
+		return
+	var tex := _tex_aim if state == State.AIM or state == State.FIRE else _tex_idle
+	if tex != null and _art.texture != tex:
+		_art.texture = tex
 
 func _draw() -> void:
 	if Engine.is_editor_hint():
 		draw_circle(Vector2.ZERO, radius, Color(BODY_COLOR, 0.9))
 		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 24, EDGE_COLOR, 2.0, true)
+		return
+	if _art != null:
+		# 有图就只画"瞄准红线"这一层游戏信息，身体交给贴图。
+		if state == State.AIM:
+			var k2 := clampf(time / maxf(aim_time, 0.01), 0.0, 1.0)
+			draw_line(aim_dir * (radius + 2.0), aim_dir * (radius + 40.0 + 260.0 * k2),
+					Color(EYE_COLOR, 0.15 + 0.5 * k2), 1.0 + 2.0 * k2)
 		return
 	var eye := 3.0
 	match state:
