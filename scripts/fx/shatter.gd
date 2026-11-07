@@ -8,8 +8,11 @@ const LIFE := 1.1
 ## 闪光和冲击环持续多久。
 const FLASH_TIME := 0.3
 const SHARDS := 30
+## 美术图：碎晶爆发（128×128 透明底），前 0.22 秒叠一层。
+const ART := "res://assets/art/fx/shard_burst.png"
 
 var color := Color.WHITE
+var _tex: Texture2D
 var _parts: Array = []
 var _t := 0.0
 
@@ -19,6 +22,8 @@ static func spawn(parent: Node, pos: Vector2, tint: Color) -> void:
 	var fx := Shatter.new()
 	fx.color = tint
 	fx.material = Lighting.unshaded()
+	if ResourceLoader.exists(ART):
+		fx._tex = load(ART) as Texture2D
 	for i in SHARDS:
 		var angle := randf() * TAU
 		# 先快后慢：高速碎片少、低速碎片多，看起来像被炸开
@@ -43,6 +48,11 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var k := clampf(_t / LIFE, 0.0, 1.0)
 	var fade := 1.0 - k
+	# 美术图：开头 0.22 秒叠一张碎晶爆发，和程序碎片叠在一起更密。
+	if _tex != null and _t < 0.22:
+		var f := 1.0 - _t / 0.22
+		var box := Vector2(150.0, 150.0) * (0.8 + 0.4 * f)
+		draw_texture_rect(_tex, Rect2(-box * 0.5, box), false, Color(1, 1, 1, f))
 	# 闪光：不铺一大块实心，而是"亮核 + 一圈冲击波"，暗背景上才不糊成一坨
 	if _t < FLASH_TIME:
 		var f := 1.0 - _t / FLASH_TIME
