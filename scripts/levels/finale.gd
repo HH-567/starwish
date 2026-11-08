@@ -15,6 +15,8 @@ const CAMERA_PAD := 240.0
 const SWEEP_PX := 1500.0
 ## 一段加速带和下一段之间隔多久铺（真实时间，秒）。
 const DEPLOY_GAP := 0.07
+## 终章噬光者速度：迷宫会逼玩家转向掉速，全球 420 会把每次转弯都变成送死，压到 395。
+const BOSS_SPEED_CHASE := 395.0
 
 ## 存档 id 的前缀：开头和结尾里的节点 id 是 "finale/…"。
 var chapter_id := &"finale"
@@ -52,6 +54,7 @@ func _ready() -> void:
 	Game.boss_state_changed.connect(_on_boss_state_changed)
 	Game.road_light.connect(_on_road_light)
 	_setup_tint()
+	Game.tuning.boss_speed = BOSS_SPEED_CHASE
 	# 赛道一开始是暗的：加速带全收起来，等点灯的人来铺。
 	if _reached < 0:
 		for strip in _strips():
