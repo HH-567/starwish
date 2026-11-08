@@ -411,13 +411,16 @@ func _setup_visuals() -> void:
 			_art_hurt.visible = false
 			add_child(_art_hurt)
 
-## 星体精灵跟着状态走：淡入淡出、自转、受伤时闪白。
+## 星体精灵跟着状态走：淡入淡出、自转、受伤时闪白、阶段 2 闪红预警。
 func _sync_art(a: float) -> void:
 	if _art == null:
 		return
 	var flash := hurt_left > 0.0 and fmod(hurt_left, 0.1) < 0.05
+	# 阶段 2 是"再快就容易一头撞碎"的预警档：星体要闪红。
+	var warn := stage == 2 and state == State.ACTIVE and Time.get_ticks_msec() % 160 < 80
+	var tint := WARN_COLOR.lerp(Color.WHITE, 0.35) if warn else Color.WHITE
 	_art.visible = a > 0.0
-	_art.modulate.a = a * (0.35 if flash else 1.0)
+	_art.modulate = Color(tint.r, tint.g, tint.b, a * (0.35 if flash else 1.0))
 	_art.rotation = _spin
 	if _art_hurt != null:
 		_art_hurt.visible = a > 0.0 and flash
@@ -457,8 +460,19 @@ func fade() -> float:
 	return 1.0
 
 func _draw() -> void:
-	# 有美术图就只画光晕之类的附加物，星体交给精灵。
+	# 有美术图时星体交给精灵，但继续画"游戏信息"：护盾、虫洞冲劲、阶段 2 的裂纹。
 	if _art != null:
+		var fa := fade()
+		if fa > 0.0:
+			if shield:
+				draw_arc(Vector2.ZERO, RADIUS * 2.2, 0.0, TAU, 32, Color(SHIELD_COLOR, 0.6 * fa), 2.0, true)
+			if charged:
+				draw_circle(Vector2.ZERO, RADIUS * 2.0, Color(1.0, 1.0, 1.0, 0.25 * fa))
+			if stage == 2 and state == State.ACTIVE:
+				var r2 := RADIUS * 1.4
+				var crack2 := Color(0.3, 0.05, 0.05, fa)
+				draw_polyline(PackedVector2Array([Vector2(-0.5, -0.2) * r2, Vector2(-0.1, 0.05) * r2, Vector2(0.15, -0.3) * r2, Vector2(0.55, -0.1) * r2]), crack2, 1.5)
+				draw_polyline(PackedVector2Array([Vector2(-0.1, 0.05) * r2, Vector2(0.05, 0.5) * r2]), crack2, 1.5)
 		return
 	# 碎掉的时候碎片接手，星体自己不画；熄灭是慢慢化开，星体要一直画到淡没。
 	if state == State.DYING and death_cause != Death.EXTINGUISHED:

@@ -44,12 +44,6 @@ func _load_art() -> void:
 		_tex_intact = load(ART_INTACT) as Texture2D
 	if ResourceLoader.exists(ART_BROKEN):
 		_tex_broken = load(ART_BROKEN) as Texture2D
-	if _tex_intact == null:
-		return
-	_art = Sprite2D.new()
-	_art.texture = _tex_intact
-	_art.scale = size / Vector2(_tex_intact.get_width(), _tex_intact.get_height())
-	add_child(_art)
 
 func smash() -> void:
 	collision_layer = 0
@@ -62,6 +56,12 @@ func _draw() -> void:
 	if _art != null:
 		return
 	var rect := Rect2(-size * 0.5, size)
+	if _tex_intact != null:
+		# 平铺而不是拉伸：1×3 格的墙就重复三块砖，不会被压扁成一条。
+		draw_texture_rect(_tex_intact, rect, true)
+		# 一圈暖色细边，和普通墙区分开——这是"撞得碎"的墙。
+		draw_rect(rect, Color(0.95, 0.72, 0.4, 0.45), false, 1.0)
+		return
 	draw_rect(rect, COLOR)
 	draw_rect(rect, COLOR.lightened(0.3), false, 2.0)
 	if Engine.is_editor_hint():
