@@ -31,6 +31,22 @@ const VOICES := 6
 ## 整体音量，dB。
 const VOLUME := -6.0
 
+## 每个音效的相对音量（dB）：撞墙这种高频事件压低，救人/过关抬起来。
+const LEVELS := {
+	&"hit": -7.0,
+	&"break": -2.0,
+	&"burn": -5.0,
+	&"rescue": 0.0,
+	&"help": -3.0,
+	&"warp": -3.0,
+	&"clear": 0.0,
+	&"death": 0.0,
+	&"boss": -1.0,
+	&"ending": 0.0,
+}
+## 同一个音效重复播时，在 ±这个范围里随机微调音高，避免机械重复感。
+const PITCH_JITTER := 0.06
+
 ## 第一次输入之前为真：不播。
 var locked := true
 ## 最近播过的那个音效，测试用。
@@ -81,6 +97,8 @@ func play(id: StringName) -> void:
 	var player := _players[_next]
 	_next = (_next + 1) % _players.size()
 	player.stream = STREAMS[id]
+	player.volume_db = VOLUME + float(LEVELS.get(id, 0.0))
+	player.pitch_scale = 1.0 + randf_range(-PITCH_JITTER, PITCH_JITTER)
 	player.play()
 	last_played = id
 	count += 1
