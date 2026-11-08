@@ -62,8 +62,8 @@ func _walk() -> bool:
 	Input.action_release("move_up")
 	_check("竖井：捡到小星星回亮度", _player.light > low, "%.0f → %.0f" % [low, _player.light])
 
-	# 守夜人：散射照 2 秒。
-	_put(Vector2i(22, 3))
+	# 守夜人：在终点上方的房间里，散射照 2 秒。
+	_put(Vector2i(86, 17))
 	await _frames(140)
 	_check("照亮守夜人", _saved(&"watchman"))
 	_check("救到人：亮度回满，上限不再提高", is_equal_approx(_player.light, _player.light_max) and is_equal_approx(_player.light_max, Game.tuning.light_base), "%.0f / %.0f" % [_player.light, _player.light_max])
