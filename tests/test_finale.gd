@@ -211,6 +211,8 @@ class Runner extends Node:
 			return f != null and f.player != null and f.player.state != Player.State.SPAWN)
 
 	## 小星自己跑：一直按左，上下朝前面最近的路点那一行靠，直到进结局或超时。死了重来就接着跑。
+	var _wp := 0
+
 	func _autopilot(route: Array, max_seconds := 60.0) -> void:
 		_min_gap = 99999.0
 		Input.action_press("move_left")
@@ -225,6 +227,7 @@ class Runner extends Node:
 			if not is_instance_valid(finale) or _finale() != finale:
 				finale = _finale()
 				points = _route(finale, route)
+				_wp = 0
 			var boss := finale.boss
 			if boss != null and boss.state == Boss.State.CHASE:
 				_min_gap = minf(_min_gap, boss.gap())
@@ -238,15 +241,28 @@ class Runner extends Node:
 			if p.state != Player.State.ACTIVE:
 				_steer(0)
 				continue
-			var target := points[-1]
-			for point in points:
-				if point.x < p.global_position.x:
-					target = point
-					break
+			# 沿路线推进：到得足够近就换下一个点（迷宫里有折返，不能只看 x）
+			while _wp + 1 < points.size() and p.global_position.distance_to(points[_wp]) < 44.0:
+				_wp += 1
+			var target := points[mini(_wp, points.size() - 1)]
 			var want := clampf((target.y - p.global_position.y) * 3.0, -350.0, 350.0)
 			_steer(-1 if p.velocity.y > want + 25.0 else (1 if p.velocity.y < want - 25.0 else 0))
+			_steer_x(target.x - p.global_position.x)
 		_steer(0)
+		_steer_x(0.0)
 		Input.action_release("move_left")
+
+	## 水平方向：和垂直分开控制，迷宫折返时才走得回去。
+	func _steer_x(dx: float) -> void:
+		if dx < -8.0:
+			Input.action_press("move_left")
+			Input.action_release("move_right")
+		elif dx > 8.0:
+			Input.action_press("move_right")
+			Input.action_release("move_left")
+		else:
+			Input.action_release("move_left")
+			Input.action_release("move_right")
 
 	## dir：-1 按上，1 按下，0 都松开。
 	func _steer(dir: int) -> void:
