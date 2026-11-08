@@ -75,9 +75,9 @@ static func enable_shadows(light: PointLight2D) -> void:
 
 ## 开了 dark 的关卡：没被照到的地方乘 ambient；每个矩形铺一块地面，垫在 parent 的最底下。
 ## 矩形是 parent 里的坐标。
-static func add_darkness(parent: Node, floors: Array[Rect2]) -> void:
+static func add_darkness(parent: Node, floors: Array[Rect2], ambient := Color.BLACK) -> void:
 	var shade := CanvasModulate.new()
-	shade.color = Game.tuning.ambient
+	shade.color = ambient if ambient != Color.BLACK else Game.tuning.ambient
 	parent.add_child(shade)
 	for rect in floors:
 		var ground := ColorRect.new()

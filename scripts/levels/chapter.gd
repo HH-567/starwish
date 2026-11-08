@@ -12,6 +12,10 @@ const HUD_SCENE := preload("res://scenes/ui/hud.tscn")
 ## 存档 id 的前缀，也是章节顺序表里的 id。
 @export var chapter_id := &"test"
 @export var dark := false
+## 整体色调：郊区偏冷、城市偏暖。乘在墙砖和暗处环境光上。
+@export var tint := Color.WHITE
+## 回程赛道的色调：和关卡区反过来（城市 → 郊区）。
+@export var lane_tint := Color.WHITE
 
 var mode := Mode.NORMAL
 var _prepared := false
@@ -40,8 +44,12 @@ func _ready() -> void:
 		return
 	var level := $Level as Node2D
 	var bounds := walls_rect(level.get_node(^"Walls") as TileMapLayer)
+	_apply_tint(level, tint)
+	var lane := get_node_or_null(^"ChaseLane") as Node2D
+	if lane != null:
+		_apply_tint(lane, lane_tint)
 	if dark:
-		Lighting.add_darkness(self, [bounds])
+		Lighting.add_darkness(self, [bounds], Game.tuning.ambient * tint)
 	var player := PLAYER_SCENE.instantiate() as Player
 	player.position = _spawn_point(level)
 	add_child(player)
@@ -54,6 +62,17 @@ func _ready() -> void:
 	cam.reset_smoothing()
 	# 每章一段 BGM：文件没交付就静默跳过（Audio.play_bgm 自己判断）。
 	Audio.play_bgm(chapter_id)
+
+## 给一个区上色：墙砖和实体都乘上这个色调（实体里发光的会跟着偏，正好表达冷/暖）。
+func _apply_tint(area: Node2D, c: Color) -> void:
+	if area == null or c == Color.WHITE:
+		return
+	var walls := area.get_node_or_null(^"Walls") as TileMapLayer
+	if walls != null:
+		walls.modulate = c
+	var entities := area.get_node_or_null(^"Entities") as Node2D
+	if entities != null:
+		entities.modulate = c.lerp(Color.WHITE, 0.35)
 
 ## 墙铺到的范围，全局坐标。章节的镜头范围和地面、终章每一段的地面都用它。
 static func walls_rect(walls: TileMapLayer) -> Rect2:

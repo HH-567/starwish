@@ -39,6 +39,14 @@ const LEVELS := [
 	["res://tools/test_light_map.txt", "res://scenes/levels/test_light.tscn", "TestLight", &"test_light", true, "res://tools/test_light_lane.txt"],
 	["res://tools/test_enemy_map.txt", "res://scenes/levels/test_enemy.tscn", "TestEnemy", &"test_enemy", false, "res://tools/test_feel_lane.txt"],
 ]
+## 每章的整体色调：郊区冷、城市暖。回程赛道反过来。
+const TINTS := {
+	&"ch0": [Color(0.78, 0.86, 1.0), Color(1.14, 1.02, 0.86)],
+	&"ch1": [Color(0.86, 0.92, 1.0), Color(1.10, 1.01, 0.88)],
+	&"ch2": [Color(1.0, 1.0, 1.0), Color(1.0, 1.0, 1.0)],
+	&"ch3": [Color(1.06, 1.0, 0.92), Color(0.88, 0.93, 1.0)],
+	&"ch4": [Color(1.14, 1.02, 0.86), Color(0.78, 0.86, 1.0)],
+}
 const FINALE_INTRO := "res://tools/finale_intro.txt"
 const FINALE_OUTRO := "res://tools/finale_outro.txt"
 ## 赛道和终章结尾放在上一块下面，中间空几行。
@@ -166,6 +174,10 @@ func _build_chapter(tiles: TileSet, spec: Array) -> Error:
 	root.set_script(load(CHAPTER_SCRIPT))
 	root.set("chapter_id", spec[3])
 	root.set("dark", spec[4])
+	var tint: Variant = TINTS.get(spec[3])
+	if tint != null:
+		root.set("tint", tint[0])
+		root.set("lane_tint", tint[1])
 	var level := _area(root, root, "Level")
 	var rows := _build_area(root, level, tiles, spec[0], Kind.LEVEL, {}, _tier_for(spec[3]))
 	# 赛道里的帮助点按职业找关卡区里的人。
