@@ -87,6 +87,8 @@ class Runner extends Node:
 		# 全救了：拼接、帮助点、隧道、开头锁住、检查点、帮助的效果、复活、正常结局。
 		Game.debug_no_decay = true
 		Game.debug_no_enemies = true
+		# 迷宫本身用 tools/probe_maze 验；这里只验追逐、加速带和结局分支。
+		Game.debug_flat_maze = true
 		_rescue_all()
 		_check("全救了", Game.everyone_rescued())
 		_check("打开终章", await _open())

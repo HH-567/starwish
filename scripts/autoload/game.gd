@@ -67,6 +67,8 @@ var tuning: Tuning = preload(TUNING_PATH)
 var debug_no_decay := false
 ## 测试用：关掉影鬼的行动，免得它们打乱"亮度应该是多少"这类断言。
 var debug_no_enemies := false
+## 测试用：把终章迷宫的墙抹平，只验追逐/加速带/结局分支（迷宫本身用 probe_maze 验）。
+var debug_flat_maze := false
 var debug_panel := true
 ## 直接运行关卡或测试时一开始就是 PLAYING；从标题进来时 Title 调 enter_title()。
 var flow := Flow.PLAYING

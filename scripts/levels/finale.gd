@@ -54,6 +54,8 @@ func _ready() -> void:
 	Game.boss_state_changed.connect(_on_boss_state_changed)
 	Game.road_light.connect(_on_road_light)
 	_setup_tint()
+	if Game.debug_flat_maze:
+		_flatten_outro()
 	Game.tuning.boss_speed = BOSS_SPEED_CHASE
 	# 赛道一开始是暗的：加速带全收起来，等点灯的人来铺。
 	if _reached < 0:
@@ -121,6 +123,24 @@ func _process(_delta: float) -> void:
 	_update_tint()
 
 ## 点灯的人站在开头那段出口，小星跑过去他就把路点着。
+
+## 测试用：把结尾那一段的内部墙抹平（只留最外圈边框），
+## 这样 test_finale 只验追逐/加速带/结局分支，迷宫本身交给 tools/probe_maze 验。
+func _flatten_outro() -> void:
+	var outro := $Outro as Node2D
+	if outro == null:
+		return
+	var walls := outro.get_node_or_null(^"Walls") as TileMapLayer
+	if walls == null:
+		return
+	var used := walls.get_used_rect()
+	for cell in walls.get_used_cells():
+		var local := cell - used.position
+		var at_edge := local.x <= 0 or local.y <= 0 or local.x >= used.size.x - 1 or local.y >= used.size.y - 1
+		if not at_edge:
+			walls.erase_cell(cell)
+	walls.update_internals()
+
 func _add_lighter() -> void:
 	var exit := $Intro/Exit as Node2D
 	var lighter := LIGHTER_SCENE.instantiate() as RoadLighter
