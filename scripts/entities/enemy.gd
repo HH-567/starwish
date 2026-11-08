@@ -129,9 +129,12 @@ func _fire() -> void:
 func _kill(reason: StringName) -> void:
 	if not is_inside_tree():
 		return
+	# 打击感：白热冲击环 + 中心闪光 + 放射火花，再配一次镜头震动
+	HitBurst.spawn(get_parent(), global_position, EDGE_COLOR)
 	Debris.spawn(get_parent(), global_position, EDGE_COLOR, 14, 240.0, 6.0, true)
+	Game.player_hit.emit(&"kill")
 	Game.enemy_killed.emit(reason)
-	Audio.play(&"burn")
+	Audio.play(&"break")
 	queue_free()
 
 ## 美术图：待机 / 瞄准 / 开火三张 32×32 剪影。

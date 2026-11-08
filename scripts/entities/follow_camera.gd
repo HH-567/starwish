@@ -17,6 +17,8 @@ const SHAKE_BY_HIT := {
 	&"shatter": 0.9,
 	&"shield": 0.4,
 	&"boss": 1.0,
+	# 打碎敌人：比撞墙重、比死亡轻
+	&"kill": 0.62,
 }
 const SHAKE_PX := 14.0
 ## 帮助特写：拉近到多少、定格多久（真实时间，秒）、慢放到多少。

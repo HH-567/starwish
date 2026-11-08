@@ -318,7 +318,10 @@ func _smash(col: KinematicCollision2D) -> void:
 				tiles.erase_cell(cell)
 	# 立刻重建碰撞，这一帧剩下的位移才能穿过去。
 	tiles.update_internals()
-	Debris.spawn(get_parent(), tiles.to_global(tiles.map_to_local(center)), WALL_DEBRIS, 16, 320.0, 8.0)
+	var at := tiles.to_global(tiles.map_to_local(center))
+	# 撞碎墙也给一下白热冲击环，和打碎敌人同一套打击感
+	HitBurst.spawn(get_parent(), at, WALL_DEBRIS)
+	Debris.spawn(get_parent(), at, WALL_DEBRIS, 16, 320.0, 8.0)
 
 func _hurt(n: Vector2) -> void:
 	var t := Game.tuning
