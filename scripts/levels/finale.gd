@@ -51,6 +51,7 @@ func _ready() -> void:
 	cam.reset_smoothing()
 	Game.boss_state_changed.connect(_on_boss_state_changed)
 	Game.road_light.connect(_on_road_light)
+	_setup_tint()
 	# 赛道一开始是暗的：加速带全收起来，等点灯的人来铺。
 	if _reached < 0:
 		for strip in _strips():
@@ -60,6 +61,61 @@ func _ready() -> void:
 		# 从检查点续跑：路早就点着了，直接铺好，不再演一遍。
 		for strip in _strips():
 			strip.deploy()
+
+## 终章的冷暖渐变：从城里（暖）一路跑回郊外（冷）。
+const TINT_CITY := Color(1.16, 1.02, 0.84)
+const TINT_SUBURB := Color(0.74, 0.84, 1.04)
+
+var _tint_items: Array[CanvasItem] = []
+var _tint_shade: CanvasModulate
+var _tint_from := 0.0
+var _tint_to := 0.0
+
+## 把要染色的墙和实体收起来，再记下"从哪跑到哪"的横坐标范围。
+func _setup_tint() -> void:
+	for child in get_children():
+		if child is CanvasModulate:
+			_tint_shade = child as CanvasModulate
+	_tint_items.clear()
+	for area_name: String in ["Intro", "Outro"]:
+		var area := get_node_or_null(NodePath(area_name)) as Node2D
+		if area != null:
+			_collect_tint_items(area)
+	for child in get_children():
+		if child is Chapter:
+			var area := (child as Chapter).get_node_or_null(^"ChaseLane") as Node2D
+			if area != null:
+				_collect_tint_items(area)
+	var intro := $Intro as Node2D
+	var outro := $Outro as Node2D
+	_tint_from = (intro.get_node(^"Exit") as Node2D).global_position.x
+	_tint_to = Chapter.walls_rect(outro.get_node(^"Walls") as TileMapLayer).position.x
+	if _tint_to >= _tint_from:
+		_tint_from = _tint_to - 1.0
+
+func _collect_tint_items(area: Node2D) -> void:
+	var walls := area.get_node_or_null(^"Walls") as TileMapLayer
+	if walls != null:
+		_tint_items.append(walls)
+	var entities := area.get_node_or_null(^"Entities") as Node2D
+	if entities != null:
+		_tint_items.append(entities)
+
+## 按小星跑过的横向距离插值：城里暖、越跑越冷。
+func _update_tint() -> void:
+	if _tint_items.is_empty() or player == null:
+		return
+	var span := _tint_from - _tint_to
+	var k := clampf((_tint_from - player.global_position.x) / maxf(span, 1.0), 0.0, 1.0)
+	var c := TINT_CITY.lerp(TINT_SUBURB, k)
+	for item in _tint_items:
+		if is_instance_valid(item):
+			item.modulate = c
+	if _tint_shade != null:
+		_tint_shade.color = Game.tuning.ambient * c
+
+func _process(_delta: float) -> void:
+	_update_tint()
 
 ## 点灯的人站在开头那段出口，小星跑过去他就把路点着。
 func _add_lighter() -> void:
