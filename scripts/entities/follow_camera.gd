@@ -33,6 +33,8 @@ const DISSOLVE_TIME := 0.7
 const DISSOLVE_SLOW := 0.45
 ## 铺路演出：镜头从玩家身上脱开、往赛道前方滑过去，顺便把镜头拉远看全跑道。
 const SWEEP_ZOOM := 0.82
+## 小人特写要推近，和铺路那种拉远的长镜头不一样。
+const CINE_ZOOM := 1.6
 const SWEEP_SLOW := 0.32
 
 var _trauma := 0.0
@@ -48,6 +50,7 @@ var _sweep_from := Vector2.ZERO
 var _sweep_to := Vector2.ZERO
 var _sweep_total := 0.0
 var _sweep_left := 0.0
+var _sweep_zoom := SWEEP_ZOOM
 
 @onready var _player := get_parent() as Player
 
@@ -127,13 +130,17 @@ func _end_spot() -> void:
 
 ## 铺路演出：镜头从玩家身上脱开、沿赛道往前（往左）滑过去，一边滑一边拉远，
 ## 让玩家看清这一段跑道是怎么被点亮的。滑完自动回到跟随。
-func sweep(to_world: Vector2, time := 1.3) -> void:
+func sweep(to_world: Vector2, time := 1.3, zoom_to := SWEEP_ZOOM) -> void:
 	if _sweep_left > 0.0:
 		return
 	_sweep_from = _player.global_position
 	_sweep_to = to_world
 	_sweep_total = maxf(time, 0.2)
 	_sweep_left = _sweep_total
+	_sweep_zoom = zoom_to
+	# 推近的特写直接切到位（1 帧内到位），拉远的长镜头才慢慢走
+	if zoom_to >= 1.0:
+		zoom = Vector2(zoom_to, zoom_to)
 	Engine.time_scale = SWEEP_SLOW
 
 func _sweep(real: float) -> void:
@@ -142,7 +149,7 @@ func _sweep(real: float) -> void:
 	var eased := smoothstep(0.0, 1.0, k)
 	var world := _sweep_from.lerp(_sweep_to, eased)
 	position = world - _player.global_position
-	zoom = zoom.lerp(Vector2(SWEEP_ZOOM, SWEEP_ZOOM), 1.0 - exp(-6.0 * real))
+	zoom = zoom.lerp(Vector2(_sweep_zoom, _sweep_zoom), 1.0 - exp(-6.0 * real))
 	offset = Vector2.ZERO
 	_look = position
 	if _sweep_left <= 0.0:

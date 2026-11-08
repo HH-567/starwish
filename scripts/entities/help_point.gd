@@ -10,6 +10,9 @@ const LAMP := 90.0
 ## 守夜人的路灯从近到远一盏盏亮，每秒传多远。
 const CASCADE_SPEED := 1600.0
 const FLASH_TIME := 0.6
+## 小人特写：推进去多久、拉回来多久（秒）。
+const CINE_IN := 0.75
+const CINE_OUT := 0.55
 
 ## 指向 Level 里的那个人。Chapter.prepare(FINALE) 删掉 Level 之前调 resolve()，记下他的 save_id 和职业。
 @export var npc: NodePath
@@ -75,6 +78,23 @@ func _on_body_entered(body: Node2D) -> void:
 	_help(player)
 	Debris.spawn(get_parent(), global_position, Npc.GLOW, 14, 220.0, 4.0, true)
 	Game.help_triggered.emit(StringName(role))
+	_cinematic(player)
+
+
+## 追逐战里的小人特写：镜头切到小人 → 特效（光环 + 打向噬光者的光柱）→ 回到小星。
+## 特写期间时间放慢（镜头 sweep 自己会做），游戏逻辑照常跑，不会漏判定。
+func _cinematic(player: Player) -> void:
+	if Game.flow != Game.Flow.CHASE:
+		return
+	var boss := get_tree().get_first_node_in_group(&"boss") as Boss
+	var boss_at := boss.global_position if boss != null else global_position
+	HelpFx.spawn(get_parent(), global_position, boss_at, Npc.GLOW)
+	var cam := player.get_node_or_null(^"Camera") as Camera2D
+	if cam == null:
+		return
+	if cam.has_method("sweep"):
+		# 推过去特写；结束时镜头自己的平滑会把视角带回小星，不用再来一次 sweep
+		cam.sweep(global_position, CINE_IN, 1.6)
 
 ## 按职业帮一次。园丁、画家、矿工的帮助就是他们的子节点（花、光门、隧道），这里不用再做什么。
 func _help(player: Player) -> void:
