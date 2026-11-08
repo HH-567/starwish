@@ -64,7 +64,7 @@ func _cases() -> bool:
 	_check("散射照 1.8 秒：还在醒来中", npc.state == Npc.State.WAKING, "进度 %.2f" % npc.progress)
 	await _frames(20)
 	_check("散射照满 2 秒：得救并存档", npc.state == Npc.State.RESCUED and Save.rescued.has(npc.save_id))
-	_check("救人后亮度上限 +5 并回满", _player.light_max == 65.0 and _player.light == 65.0, "%.1f / %.1f" % [_player.light, _player.light_max])
+	_check("救人后亮度回满、上限不变", _player.light == _player.light_max and _player.light_max == 60.0, "%.1f / %.1f" % [_player.light, _player.light_max])
 	_check("npc_rescued 只发一次", _count(&"npc_rescued") == 1)
 
 	await _begin()
@@ -169,7 +169,7 @@ func _cases() -> bool:
 	var postman := _npc(Vector2(-100, 0), {"role": "postman"})
 	await _frames(130)
 	_check("邮差被救：在场的照不到的人一起被救", postman.state == Npc.State.RESCUED and doctor.state == Npc.State.RESCUED and Save.rescued.get(doctor.save_id) == &"doctor")
-	_check("邮差被救：不在场的也记成已救，亮度上限跟着涨", Save.rescued.get("t/Far/Away") == &"listener" and _player.light_max == 60.0 + 3 * 5.0, "上限 %.0f" % _player.light_max)
+	_check("邮差被救：不在场的也记成已救，上限不变", Save.rescued.get("t/Far/Away") == &"listener" and _player.light_max == 60.0, "上限 %.0f" % _player.light_max)
 
 	# 锁匠：被救时铁门当场打开；之后加载的铁门直接不出现。
 	await _begin()

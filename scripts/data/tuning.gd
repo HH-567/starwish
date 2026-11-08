@@ -50,6 +50,7 @@ extends Resource
 @export var smash_radius := 1
 
 @export_group("光")
+## 亮度上限固定就是 light_base（救人不再涨）。light_cap 只用来把"当前亮度"归一化成光环半径。
 @export var light_base := 60.0
 @export var light_per_rescue := 5.0
 @export var light_cap := 140.0

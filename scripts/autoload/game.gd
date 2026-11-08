@@ -95,9 +95,9 @@ func _ready() -> void:
 	chapter_cleared.connect(_on_chapter_cleared)
 	boss_state_changed.connect(_on_boss_state_changed)
 
-## 亮度上限：每救一人加 light_per_rescue，不超过 light_cap。
+## 亮度上限：固定值。救人不再提高上限（2026-11 改），亮度只靠地图上的小星星补。
 func light_max() -> float:
-	return minf(tuning.light_base + tuning.light_per_rescue * Save.rescued.size(), tuning.light_cap)
+	return tuning.light_base
 
 ## WASD 能推到的最高速率。没有封顶，更快只能靠地图上的加速带等机关。
 func input_limit() -> float:

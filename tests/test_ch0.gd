@@ -66,7 +66,7 @@ func _walk() -> bool:
 	_put(Vector2i(22, 3))
 	await _frames(140)
 	_check("照亮守夜人", _saved(&"watchman"))
-	_check("救到人：亮度上限 +light_per_rescue 并回满", is_equal_approx(_player.light, _player.light_max) and is_equal_approx(_player.light_max, Game.tuning.light_base + Game.tuning.light_per_rescue), "%.0f / %.0f" % [_player.light, _player.light_max])
+	_check("救到人：亮度回满，上限不再提高", is_equal_approx(_player.light, _player.light_max) and is_equal_approx(_player.light_max, Game.tuning.light_base), "%.0f / %.0f" % [_player.light, _player.light_max])
 
 	# 检查点：走进去就记下。
 	_put(Vector2i(24, 11))

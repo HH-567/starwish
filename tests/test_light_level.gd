@@ -121,7 +121,7 @@ func _walk() -> bool:
 	await _frames(130)
 	_check("回头：出生大厅铁门后救出邮差", _saved(&"postman"))
 	_check("邮差被救：医生收到信也得救", _saved(&"doctor"))
-	_check("12 个人全部救出，亮度上限 = 60 + 12 × 5", Save.rescued.size() == 12 and _player.light_max == 120.0, "%d 人，上限 %.0f" % [Save.rescued.size(), _player.light_max])
+	_check("12 个人全部救出，上限仍是 60", Save.rescued.size() == 12 and _player.light_max == 60.0, "%d 人，上限 %.0f" % [Save.rescued.size(), _player.light_max])
 
 	_put(Vector2i(5, 3), Player.LightMode.SCATTER)
 	_player.velocity = Vector2(-300, 0)
