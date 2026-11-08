@@ -25,6 +25,11 @@ var state := State.IDLE
 var time := 0.0
 ## 瞄准方向，AIM 期间一直跟着小星转。
 var aim_dir := Vector2.RIGHT
+## 被打中后先定住闪白一小会再炸开（0.06 秒 = 约 4 帧），比"一帧消失"有打击感。
+const HIT_HOLD := 0.06
+var _dying := false
+var _hit_left := 0.0
+var _kill_reason := &""
 
 ## 这一只实际用的瞄准时间、冷却、一次打几发。
 func _aim_time() -> float:
@@ -62,6 +67,11 @@ func _load_art() -> void:
 
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
+		return
+	if _dying:
+		_hit_left -= delta
+		if _hit_left <= 0.0:
+			_burst()
 		return
 	if get_tree().paused:
 		return
@@ -127,14 +137,29 @@ func _fire() -> void:
 
 ## 死：一团碎片，然后从场上消失。谁打死的记在 Game 的信号里。
 func _kill(reason: StringName) -> void:
+	if not is_inside_tree() or _dying:
+		return
+	_dying = true
+	_hit_left = HIT_HOLD
+	_kill_reason = reason
+	# 定格期间闪白：贴图直接提亮，没贴图就整个节点提亮
+	if _art != null:
+		_art.self_modulate = Color(3.0, 3.0, 3.0)
+	else:
+		modulate = Color(2.5, 2.5, 2.5)
+	queue_redraw()
+
+## 定格结束：炸开、报信号、按连击数放大特效和音高。
+func _burst() -> void:
 	if not is_inside_tree():
 		return
-	# 打击感：白热冲击环 + 中心闪光 + 放射火花，再配一次镜头震动
-	HitBurst.spawn(get_parent(), global_position, EDGE_COLOR)
-	Debris.spawn(get_parent(), global_position, EDGE_COLOR, 14, 240.0, 6.0, true)
+	var combo := Game.hit_combo()
+	var grow := 1.0 + 0.12 * float(mini(combo - 1, 5))
+	HitBurst.spawn(get_parent(), global_position, EDGE_COLOR, grow)
+	Debris.spawn(get_parent(), global_position, EDGE_COLOR, 14 + combo * 2, 240.0, 6.0, true)
 	Game.player_hit.emit(&"kill")
-	Game.enemy_killed.emit(reason)
-	Audio.play(&"break")
+	Game.enemy_killed.emit(_kill_reason)
+	Audio.play(&"break", 1.0 + 0.06 * float(mini(combo - 1, 6)))
 	queue_free()
 
 ## 美术图：待机 / 瞄准 / 开火三张 32×32 剪影。

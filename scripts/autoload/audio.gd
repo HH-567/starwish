@@ -111,7 +111,7 @@ func has(id: StringName) -> bool:
 	return STREAMS.has(id)
 
 ## 播一个音效。locked 时什么都不做；冷却内的重复触发也丢掉。
-func play(id: StringName) -> void:
+func play(id: StringName, pitch_mul := 1.0) -> void:
 	if locked or not STREAMS.has(id):
 		return
 	if now - float(_last_time.get(id, -999.0)) < float(COOLDOWN.get(id, 0.05)):
@@ -121,7 +121,7 @@ func play(id: StringName) -> void:
 	_next = (_next + 1) % _players.size()
 	player.stream = STREAMS[id]
 	player.volume_db = VOLUME + float(LEVELS.get(id, 0.0))
-	player.pitch_scale = 1.0 + randf_range(-PITCH_JITTER, PITCH_JITTER)
+	player.pitch_scale = pitch_mul * (1.0 + randf_range(-PITCH_JITTER, PITCH_JITTER))
 	player.play()
 	last_played = id
 	count += 1

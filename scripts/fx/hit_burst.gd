@@ -12,11 +12,12 @@ var color := Color("ffe9a0")
 var _t := 0.0
 var _rays: Array[float] = []
 
-static func spawn(parent: Node, pos: Vector2, tint := Color("ffe9a0")) -> void:
+static func spawn(parent: Node, pos: Vector2, tint := Color("ffe9a0"), scale_mul := 1.0) -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
 	var fx := HitBurst.new()
 	fx.color = tint
+	fx.scale = Vector2.ONE * scale_mul
 	fx.material = Lighting.unshaded()
 	fx.global_position = pos
 	for i in SHARDS:

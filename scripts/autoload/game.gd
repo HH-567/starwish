@@ -118,6 +118,20 @@ func can_continue() -> bool:
 	return _index_of(Save.chapter) >= 0
 
 ## 所有人都救出来了：终章里科学家出现，可以走隐藏结局。
+## 连击：短时间内连续打碎敌人，返回这次是第几连（1 = 单独一个）。
+## 用游戏时间算，无头测试里也能稳定。
+const COMBO_WINDOW := 0.9
+var combo := 0
+var combo_at := -100.0
+
+func hit_combo() -> int:
+	var at := Time.get_ticks_msec() / 1000.0
+	if at - combo_at > COMBO_WINDOW:
+		combo = 0
+	combo += 1
+	combo_at = at
+	return combo
+
 func everyone_rescued() -> bool:
 	return Save.rescued.size() >= NPC_TOTAL
 
