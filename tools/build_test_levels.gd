@@ -79,7 +79,7 @@ const SCENES := {
 }
 ## 小人的图例 → 职业。
 const ROLES := {
-	"n": "none", "w": "watchman", "g": "gardener", "d": "doctor", "a": "painter", "G": "guide", "m": "miner",
+	"n": "none", "w": "watchman", "g": "gardener", "d": "doctor", "a": "painter", "G": "guide", "m": "miner", "D": "doctor",
 	"L": "locksmith", "M": "postman", "p": "musician", "q": "listener", "c": "clockmaker", "Z": "scientist",
 }
 ## 标记点：字母 → [节点名, 记在格子的哪里（0 = 左边缘，0.5 = 中间，1 = 右边缘）]。

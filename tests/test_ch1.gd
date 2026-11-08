@@ -60,13 +60,12 @@ func _walk() -> bool:
 	await _frames(140)
 	_check("照亮园丁", _saved(&"gardener"))
 
-	# 玻璃房：外面照不进去，也走不进去，医生记进等邮差的名单。
+	# 玻璃房：进不去，但能从下方通风口把医生照到（医生是可以照亮的版本）。
 	_put(Vector2i(50, 21), Player.LightMode.SCATTER)
 	await _frames(6)
-	_put(Vector2i(53, 21), Player.LightMode.FOCUS, Vector2.UP)
-	await _frames(140)
-	_check("玻璃房里的医生照不到", not _saved(&"doctor"))
-	_check("医生记进等邮差的名单", Save.mail.values().has(&"doctor"), "%s" % [Save.mail])
+	_put(Vector2i(54, 21), Player.LightMode.SCATTER)
+	await _frames(200)
+	_check("隔着通风口照亮医生", _saved(&"doctor"), "%s" % [Save.rescued])
 	_put(Vector2i(53, 21), Player.LightMode.SCATTER)
 	Input.action_press("move_up")
 	await _frames(60)
