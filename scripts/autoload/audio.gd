@@ -47,6 +47,14 @@ const LEVELS := {
 ## 同一个音效重复播时，在 ±这个范围里随机微调音高，避免机械重复感。
 const PITCH_JITTER := 0.06
 
+## 背景音乐：两路播放器交叉淡化。文件放 res://audio/bgm/<id>.ogg，没有就静音（不会报错）。
+const BGM_DIR := "res://audio/bgm/"
+const BGM_FADE := 1.4
+## 有音乐时整体压到这个音量，给音效让路。
+const BGM_DB := -14.0
+## 暂停/死亡时再压低多少。
+const BGM_DUCK_DB := -10.0
+
 ## 第一次输入之前为真：不播。
 var locked := true
 ## 最近播过的那个音效，测试用。
@@ -59,6 +67,12 @@ var now := 0.0
 var _players: Array[AudioStreamPlayer] = []
 var _next := 0
 var _last_time := {}
+var _bgm_a: AudioStreamPlayer
+var _bgm_b: AudioStreamPlayer
+var _bgm_active: AudioStreamPlayer
+var _bgm_current := &""
+var _ducked := false
+var _bgm_tween: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -67,6 +81,13 @@ func _ready() -> void:
 		player.volume_db = VOLUME
 		add_child(player)
 		_players.append(player)
+	_bgm_a = AudioStreamPlayer.new()
+	_bgm_b = AudioStreamPlayer.new()
+	for p: AudioStreamPlayer in [_bgm_a, _bgm_b]:
+		p.volume_db = -80.0
+		p.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(p)
+	_bgm_active = _bgm_a
 	Game.player_hit.connect(_on_hit)
 	Game.npc_rescued.connect(func(_id: String) -> void: play(&"rescue"))
 	Game.vine_burnt.connect(func(_id: String) -> void: play(&"burn"))
@@ -103,6 +124,49 @@ func play(id: StringName) -> void:
 	last_played = id
 	count += 1
 
+## 背景音乐：换曲子时交叉淡化。优先 .ogg，没有就找 .wav；都没有就静默跳过（还没交付）。
+func play_bgm(id: StringName) -> void:
+	if id == _bgm_current:
+		return
+	var stream: AudioStream = null
+	for ext: String in [".ogg", ".wav"]:
+		var path := BGM_DIR + String(id) + ext
+		if ResourceLoader.exists(path):
+			stream = load(path) as AudioStream
+			if stream != null:
+				break
+	if stream == null:
+		return
+	# WAV 需要自己开循环；ogg 在导入时设了 loop。
+	if stream is AudioStreamWAV:
+		var wav := stream as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		wav.loop_end = wav.get_length() * wav.mix_rate
+	_bgm_current = id
+	var next := _bgm_b if _bgm_active == _bgm_a else _bgm_a
+	var prev := _bgm_active
+	next.stream = stream
+	next.volume_db = -80.0
+	next.play()
+	_bgm_active = next
+	var target := BGM_DB + (BGM_DUCK_DB if _ducked else 0.0)
+	if _bgm_tween != null and _bgm_tween.is_valid():
+		_bgm_tween.kill()
+	_bgm_tween = create_tween().set_parallel(true)
+	_bgm_tween.tween_property(next, "volume_db", target, BGM_FADE)
+	_bgm_tween.tween_property(prev, "volume_db", -80.0, BGM_FADE)
+	await _bgm_tween.finished
+	if prev != next:
+		prev.stop()
+
+## 暂停 / 死亡时把音乐压低，恢复时抬回来。
+func set_ducked(value: bool) -> void:
+	_ducked = value
+	if _bgm_active == null or _bgm_current == &"":
+		return
+	_bgm_active.volume_db = BGM_DB + (BGM_DUCK_DB if value else 0.0)
+
 ## 撞墙：擦墙和反弹不响，免得每帧都在响；受伤和轻撞响一下。
 func _on_hit(kind: StringName) -> void:
 	if kind == &"bump" or kind == &"hurt":
@@ -111,3 +175,4 @@ func _on_hit(kind: StringName) -> void:
 func _on_boss_state(state: int) -> void:
 	if state == Boss.State.EMERGE:
 		play(&"boss")
+		play_bgm(&"chase")

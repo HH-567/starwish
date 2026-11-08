@@ -52,6 +52,8 @@ func _ready() -> void:
 	cam.limit_right = int(bounds.end.x)
 	cam.limit_bottom = int(bounds.end.y)
 	cam.reset_smoothing()
+	# 每章一段 BGM：文件没交付就静默跳过（Audio.play_bgm 自己判断）。
+	Audio.play_bgm(chapter_id)
 
 ## 墙铺到的范围，全局坐标。章节的镜头范围和地面、终章每一段的地面都用它。
 static func walls_rect(walls: TileMapLayer) -> Rect2:
