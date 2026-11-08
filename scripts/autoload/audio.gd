@@ -95,7 +95,9 @@ func _ready() -> void:
 	Game.warped.connect(func() -> void: play(&"warp"))
 	Game.help_triggered.connect(func(_role: StringName) -> void: play(&"help"))
 	Game.chapter_cleared.connect(func(_id: StringName) -> void: play(&"clear"))
-	Game.player_died.connect(func(_cause: int) -> void: play(&"death"))
+	# 死亡音效跟"开始死"同步，不是跟"死完"——player_died 是动画播完之后才发的，
+	# 挂在它上面会变成"动画放完才响"。
+	Game.player_dying.connect(func(_pos: Vector2, _cause: int) -> void: play(&"death"))
 	Game.boss_state_changed.connect(_on_boss_state)
 
 func _process(delta: float) -> void:

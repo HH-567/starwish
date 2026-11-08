@@ -9,7 +9,9 @@ enum LightMode { SCATTER, FOCUS }
 
 const RADIUS := 10.0
 const SPAWN_TIME := 0.5
-const DYING_TIME := 1.0
+## 死亡动画多长才重开：要等最长的那个特效（消散 1.4 秒）播完，
+## 死亡音效也正好 1.4 秒，三者对齐。
+const DYING_TIME := 1.4
 const WARP_TIME := 0.15
 const MAX_HITS_PER_FRAME := 4
 ## 法向速度低于它的阶段 1 碰撞不发 bump 信号，免得贴墙时每帧都触发。
