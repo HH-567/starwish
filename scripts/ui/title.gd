@@ -23,10 +23,14 @@ func _ready() -> void:
 	box.add_child(Menu.label("星愿", 96, STAR))
 	box.add_child(Menu.label("撞碎长夜", 34, SUB))
 	box.add_child(_spacer(40))
-	_new = Menu.button("新的旅程", _on_new)
+	_new = IconButton.make(IconButton.Kind.NEW, "新的旅程")
+	_new.pressed.connect(_on_new)
 	box.add_child(_new)
-	box.add_child(Menu.button("设置", _open_settings))
-	_continue = Menu.button("继续", _on_continue)
+	var gear := IconButton.make(IconButton.Kind.GEAR, "设置")
+	gear.pressed.connect(_open_settings)
+	box.add_child(gear)
+	_continue = IconButton.make(IconButton.Kind.PLAY, "继续")
+	_continue.pressed.connect(_on_continue)
 	_continue.visible = Game.can_continue()
 	box.add_child(_continue)
 	(_continue if _continue.visible else _new).grab_focus()
@@ -43,7 +47,9 @@ func _process(delta: float) -> void:
 func _on_new() -> void:
 	if Game.can_continue() and not _confirm:
 		_confirm = true
-		_new.text = "从头开始？再按一次"
+		_new.kind = IconButton.Kind.RESTART
+		_new.tooltip_text = "再按一次：从头开始"
+		_new.queue_redraw()
 		return
 	_lock()
 	Game.start_new()
