@@ -4,13 +4,15 @@ extends Button
 ## 保留 Button 的焦点 / 键盘导航 / 点击语义。
 ##   ▶ 继续   ↻ 回到检查点   ✦⚙ 设置   ⌂ 回到标题   ✧ 新的旅程
 
-enum Kind { PLAY, RESTART, GEAR, HOME, NEW }
+enum Kind { PLAY, RESTART, GEAR, HOME, NEW, LIST }
 
 const IDLE := Color("b9c8ff")
 const HOT := Color("ffd75a")
 const SIZE := 64.0
 
 var kind := Kind.PLAY
+## 低亮度：次要按钮（比如制作名单）用，不抢主菜单的注意力。
+var dim := false
 
 static func make(k: Kind, tooltip := "") -> IconButton:
 	var b := IconButton.new()
@@ -28,6 +30,8 @@ static func make(k: Kind, tooltip := "") -> IconButton:
 
 func _draw() -> void:
 	var c := HOT if (is_hovered() or has_focus()) else IDLE
+	if dim and not (is_hovered() or has_focus()):
+		c = Color(IDLE, 0.4)
 	var m := size * 0.5
 	var r := minf(size.x, size.y) * 0.34
 	match kind:
@@ -58,6 +62,12 @@ func _draw() -> void:
 				m + Vector2(0, -r * 1.15), m + Vector2(r, -r * 0.1), m + Vector2(-r, -r * 0.1)]), c)
 			draw_rect(Rect2(m + Vector2(-r * 0.62, -r * 0.1), Vector2(r * 1.24, r * 0.95)), c)
 			draw_rect(Rect2(m + Vector2(-r * 0.16, r * 0.24), Vector2(r * 0.32, r * 0.6)), Color(0.04, 0.05, 0.1))
+		Kind.LIST:
+			# 名单：三条横线 + 前面的小圆点
+			for i in 3:
+				var y := m.y + (float(i) - 1.0) * r * 0.6
+				draw_circle(Vector2(m.x - r * 0.7, y), r * 0.12, c)
+				draw_rect(Rect2(m.x - r * 0.42, y - r * 0.07, r * 1.25, r * 0.14), c)
 		Kind.NEW:
 			# 新的旅程：一颗星 + 一点新光
 			var pts2 := PackedVector2Array()
