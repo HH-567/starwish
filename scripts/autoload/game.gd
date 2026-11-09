@@ -155,15 +155,21 @@ func respawn() -> void:
 	flow = Flow.RESPAWN
 	_load_chapter(chapter_index)
 
+## 调试用：把所有小人记成已救（用真实 save_id，帮助点才认得）。
+func debug_rescue_all() -> void:
+	Save.clear()
+	for chapter: Array in chapters:
+		var scene := (load(String(chapter[1])) as PackedScene).instantiate()
+		if scene == null:
+			continue
+		for npc: Npc in scene.find_children("*", "Npc", true, false):
+			var rel := String(scene.get_path_to(npc))
+			Save.rescued["%s/%s" % [String(chapter[0]), rel]] = npc.role
+		scene.free()
+
 ## 调试用：直接跳进真结局的 boss 战（所有人已救 + 从追逐段开始）。
 func debug_true_ending() -> void:
-	Save.clear()
-	var roles := [
-		&"watchman", &"gardener", &"doctor", &"painter", &"guide", &"miner",
-		&"locksmith", &"postman", &"musician", &"listener", &"clockmaker", &"scientist",
-	]
-	for role: StringName in roles:
-		Save.rescued["debug/" + String(role)] = role
+	debug_rescue_all()
 	Save.chapter = &"finale"
 	Save.checkpoint = ""
 	flow = Flow.CHASE
