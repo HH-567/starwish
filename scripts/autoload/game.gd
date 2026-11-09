@@ -155,6 +155,20 @@ func respawn() -> void:
 	flow = Flow.RESPAWN
 	_load_chapter(chapter_index)
 
+## 调试用：直接跳进真结局的 boss 战（所有人已救 + 从追逐段开始）。
+func debug_true_ending() -> void:
+	Save.clear()
+	var roles := [
+		&"watchman", &"gardener", &"doctor", &"painter", &"guide", &"miner",
+		&"locksmith", &"postman", &"musician", &"listener", &"clockmaker", &"scientist",
+	]
+	for role: StringName in roles:
+		Save.rescued["debug/" + String(role)] = role
+	Save.chapter = &"finale"
+	Save.checkpoint = ""
+	flow = Flow.CHASE
+	get_tree().change_scene_to_file(FINALE_SCENE)
+
 func toggle_pause() -> void:
 	if flow == Flow.PAUSED:
 		flow = _flow_before_pause
@@ -298,6 +312,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			Save.clear()
 			Save.chapter = current
 			respawn()
+		KEY_F6:
+			# 一键进真结局 boss 战：所有职业都算救过，直接从追逐段开跑。
+			debug_true_ending()
 		_:
 			return
 	debug_changed.emit()

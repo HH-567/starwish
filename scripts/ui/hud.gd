@@ -16,7 +16,7 @@ func _process(_delta: float) -> void:
 	var p := get_tree().get_first_node_in_group(&"player") as Player
 	if p == null:
 		return
-	_debug.text = "速度 %d px/s　阶段 %d\n亮度 %.0f / %.0f　衰减%s　%s　已救 %d\n状态 %s　无敌 %.1f　保护 %.1f\n[R] 重置　[Esc] 暂停　[F2] 衰减开关　[F3] 隐藏面板　[F4] 重读数值　[F5] 清空进度" % [
+	_debug.text = "速度 %d px/s　阶段 %d\n亮度 %.0f / %.0f　衰减%s　%s　已救 %d\n状态 %s　无敌 %.1f　保护 %.1f\n[R] 重置　[Esc] 暂停　[F2] 衰减开关　[F3] 隐藏面板　[F4] 重读数值　[F5] 清空进度　[F6] 真结局 boss 战" % [
 		p.velocity.length(), p.stage,
 		p.light, p.light_max, "关" if Game.debug_no_decay else "开",
 		"聚光" if p.light_mode == Player.LightMode.FOCUS else "散射", Save.rescued.size(),
