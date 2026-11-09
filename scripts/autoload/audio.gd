@@ -49,6 +49,14 @@ const LEVELS := {
 func _volume_db(v: float) -> float:
 	return -60.0 if v <= 0.001 else linear_to_db(v)
 
+## 设置里调完音量后立刻生效（已经在播的 BGM / 音效也要跟着变）。
+func apply_volume() -> void:
+	if _bgm_active != null and is_instance_valid(_bgm_active):
+		_bgm_active.volume_db = BGM_DB + (BGM_DUCK_DB if _ducked else 0.0) + _volume_db(Save.music_volume)
+	for p in _players:
+		if p != null and p.playing:
+			p.volume_db = VOLUME + _volume_db(Save.sfx_volume)
+
 const PITCH_JITTER := 0.06
 
 ## 背景音乐：两路播放器交叉淡化。文件放 res://audio/bgm/<id>.ogg，没有就静音（不会报错）。
