@@ -12,6 +12,7 @@ signal player_dying(pos: Vector2, cause: int)
 signal road_light(pos: Vector2)
 signal player_died(cause: int)
 signal npc_rescued(id: String)
+signal difficulty_changed(level: int)
 signal vine_burnt(id: String)
 signal wall_broken(id: String)
 signal checkpoint_reached(id: String)
@@ -131,6 +132,25 @@ func hit_combo() -> int:
 	combo += 1
 	combo_at = at
 	return combo
+
+## 难度：0 微光级、1 长夜级、2 永夜级（docs/settings.md）
+## 长夜：补给只剩敌人旁边的；救人不再回光。
+## 永夜：光掉得更快（decay_mult），敌人更多（关卡加载时复制）。
+func decay_mult() -> float:
+	return 1.7 if Save.difficulty >= 2 else 1.0
+
+func keeps_shards_only_near_enemies() -> bool:
+	return Save.difficulty >= 1
+
+func rescue_refills() -> bool:
+	return Save.difficulty < 1
+
+func extra_enemies() -> bool:
+	return Save.difficulty >= 2
+
+## 难度改完重新载入当前章才生效（UI 会提示）。
+func apply_difficulty() -> void:
+	difficulty_changed.emit(Save.difficulty)
 
 func everyone_rescued() -> bool:
 	return Save.rescued.size() >= NPC_TOTAL

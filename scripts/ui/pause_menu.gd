@@ -13,7 +13,14 @@ func _ready() -> void:
 	_first = Menu.button("继续", Game.toggle_pause)
 	box.add_child(_first)
 	box.add_child(Menu.button("回到检查点", Game.respawn))
+	box.add_child(_settings_button())
 	box.add_child(Menu.button("回到标题", Game.to_title))
+
+func _settings_button() -> Button:
+	return Menu.button("设置", func() -> void:
+		var panel := (load("res://scenes/ui/settings.tscn") as PackedScene).instantiate()
+		add_child(panel)
+		panel.closed.connect(func() -> void: if _first != null: _first.grab_focus()))
 
 func focus_first() -> void:
 	_first.grab_focus()

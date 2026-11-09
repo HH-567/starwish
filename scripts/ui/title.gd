@@ -25,10 +25,16 @@ func _ready() -> void:
 	box.add_child(_spacer(40))
 	_new = Menu.button("新的旅程", _on_new)
 	box.add_child(_new)
+	box.add_child(Menu.button("设置", _open_settings))
 	_continue = Menu.button("继续", _on_continue)
 	_continue.visible = Game.can_continue()
 	box.add_child(_continue)
 	(_continue if _continue.visible else _new).grab_focus()
+
+func _open_settings() -> void:
+	var panel := (load("res://scenes/ui/settings.tscn") as PackedScene).instantiate()
+	add_child(panel)
+	panel.closed.connect(func() -> void: if _new != null: _new.grab_focus())
 
 func _process(delta: float) -> void:
 	_t += delta

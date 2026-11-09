@@ -62,8 +62,32 @@ func _ready() -> void:
 	cam.reset_smoothing()
 	# 每章一段 BGM：文件没交付就静默跳过（Audio.play_bgm 自己判断）。
 	Audio.play_bgm(chapter_id)
+	_apply_difficulty()
 
 ## 给一个区上色：墙砖和实体都乘上这个色调（实体里发光的会跟着偏，正好表达冷/暖）。
+## 难度：永夜级在每只影鬼旁边多放一只，长夜级不动。
+func _apply_difficulty() -> void:
+	if not Game.extra_enemies():
+		return
+	var walls := get_node_or_null(^"Walls") as TileMapLayer
+	for e in find_children("*", "Enemy", true, false):
+		var src := e as Enemy
+		if src == null:
+			continue
+		for offset: Vector2 in [Vector2(0, 96), Vector2(96, 0), Vector2(0, -96), Vector2(-96, 0)]:
+			var at := src.global_position + offset
+			if walls != null:
+				var cell := walls.local_to_map(walls.to_local(at))
+				if walls.get_cell_tile_data(cell) != null:
+					continue
+			var clone := src.duplicate() as Enemy
+			if clone == null:
+				break
+			src.get_parent().add_child(clone)
+			clone.global_position = at
+			clone.add_to_group(&"enemy")
+			break
+
 func _apply_tint(area: Node2D, c: Color) -> void:
 	if area == null or c == Color.WHITE:
 		return

@@ -18,6 +18,11 @@ var mail: Dictionary[String, StringName] = {}
 var broken: Dictionary[String, bool] = {}
 var burnt: Dictionary[String, bool] = {}
 ## 看过的结局：main、hidden。新游戏也不清。
+## 设置：音效 / 音乐音量（0..1，1 = 原始响度）。
+var sfx_volume := 1.0
+var music_volume := 1.0
+## 难度：0 微光级（现在的难度）、1 长夜级、2 永夜级。
+var difficulty := 0
 var endings: Dictionary[String, bool] = {}
 
 ## 清掉这一局的进度，看过的结局留着。
@@ -42,6 +47,9 @@ func write() -> void:
 		"broken": broken.keys(),
 		"burnt": burnt.keys(),
 		"endings": endings,
+		"sfx_volume": sfx_volume,
+		"music_volume": music_volume,
+		"difficulty": difficulty,
 	}
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
@@ -73,6 +81,9 @@ func read() -> void:
 		burnt[id] = true
 	for key in data.get("endings", {}):
 		endings[key] = data["endings"][key] == true
+	sfx_volume = clampf(float(data.get("sfx_volume", 1.0)), 0.0, 1.0)
+	music_volume = clampf(float(data.get("music_volume", 1.0)), 0.0, 1.0)
+	difficulty = clampi(int(data.get("difficulty", 0)), 0, 2)
 
 ## 这个职业有没有人被救。帮助都按职业查。
 func has_role(role: StringName) -> bool:

@@ -184,7 +184,9 @@ func _read_light_input() -> void:
 ## 救人：上限提高并回满。
 func _on_npc_rescued(_id: String) -> void:
 	light_max = Game.light_max()
-	light = light_max
+	# 长夜级起：救人不再把光补满
+	if Game.rescue_refills():
+		light = light_max
 	Game.light_changed.emit(light, light_max)
 
 ## 一帧的速度变化：加速、刹车、松手减速、WASD 上限、超速回落、封顶。
@@ -339,7 +341,7 @@ func _drain_light(delta: float) -> void:
 	if Game.debug_no_decay:
 		return
 	var t := Game.tuning
-	var rate := t.decay * (t.focus_decay_mult if light_mode == LightMode.FOCUS else 1.0)
+	var rate := t.decay * Game.decay_mult() * (t.focus_decay_mult if light_mode == LightMode.FOCUS else 1.0)
 	light = maxf(light - rate * delta, 0.0)
 	Game.light_changed.emit(light, light_max)
 	if light <= 0.0:

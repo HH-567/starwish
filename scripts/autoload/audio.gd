@@ -45,6 +45,10 @@ const LEVELS := {
 	&"ending": 0.0,
 }
 ## 同一个音效重复播时，在 ±这个范围里随机微调音高，避免机械重复感。
+## 音量（0..1）→ dB 偏移，-60 dB 视为静音。
+func _volume_db(v: float) -> float:
+	return -60.0 if v <= 0.001 else linear_to_db(v)
+
 const PITCH_JITTER := 0.06
 
 ## 背景音乐：两路播放器交叉淡化。文件放 res://audio/bgm/<id>.ogg，没有就静音（不会报错）。
@@ -120,7 +124,7 @@ func play(id: StringName, pitch_mul := 1.0) -> void:
 	var player := _players[_next]
 	_next = (_next + 1) % _players.size()
 	player.stream = STREAMS[id]
-	player.volume_db = VOLUME + float(LEVELS.get(id, 0.0))
+	player.volume_db = VOLUME + float(LEVELS.get(id, 0.0)) + _volume_db(Save.sfx_volume)
 	player.pitch_scale = pitch_mul * (1.0 + randf_range(-PITCH_JITTER, PITCH_JITTER))
 	player.play()
 	last_played = id
@@ -152,7 +156,7 @@ func play_bgm(id: StringName) -> void:
 	next.volume_db = -80.0
 	next.play()
 	_bgm_active = next
-	var target := BGM_DB + (BGM_DUCK_DB if _ducked else 0.0)
+	var target := BGM_DB + (BGM_DUCK_DB if _ducked else 0.0) + _volume_db(Save.music_volume)
 	if _bgm_tween != null and _bgm_tween.is_valid():
 		_bgm_tween.kill()
 	_bgm_tween = create_tween().set_parallel(true)
@@ -167,7 +171,7 @@ func set_ducked(value: bool) -> void:
 	_ducked = value
 	if _bgm_active == null or _bgm_current == &"":
 		return
-	_bgm_active.volume_db = BGM_DB + (BGM_DUCK_DB if value else 0.0)
+	_bgm_active.volume_db = BGM_DB + (BGM_DUCK_DB if value else 0.0) + _volume_db(Save.music_volume)
 
 ## 撞墙：擦墙和反弹不响，免得每帧都在响；受伤和轻撞响一下。
 func _on_hit(kind: StringName) -> void:

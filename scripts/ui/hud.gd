@@ -6,8 +6,26 @@ extends CanvasLayer
 
 @onready var _debug: Label = $Debug
 
+var _gear: Control
+
 func _ready() -> void:
 	_debug.position = Vector2(16, 12)
+	_gear = preload("res://scripts/ui/gear_icon.gd").new()
+	_gear.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_gear.position = Vector2(-64, 16)
+	_gear.tooltip_text = "设置"
+	_gear.pressed.connect(_open_settings)
+	add_child(_gear)
+
+## 齿轮：打开设置（游戏暂停时也能调音量）
+func _open_settings() -> void:
+	if get_tree().paused:
+		return
+	var panel := (load("res://scenes/ui/settings.tscn") as PackedScene).instantiate()
+	get_tree().root.add_child(panel)
+	panel.closed.connect(func() -> void:
+		if _gear != null:
+			_gear.queue_redraw())
 
 func _process(_delta: float) -> void:
 	_debug.visible = OS.is_debug_build() and Game.debug_panel

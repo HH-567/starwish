@@ -20,6 +20,9 @@ func _ready() -> void:
 	monitorable = false
 	Shapes.add_circle(self, RADIUS)
 	body_entered.connect(_on_body_entered)
+	# 长夜级：只保留"敌人身后"的补给，其他地方的小星星收走
+	if Game.keeps_shards_only_near_enemies():
+		call_deferred("_maybe_drop")
 	_t = randf() * TAU
 	if ResourceLoader.exists(ART):
 		var tex := load(ART) as Texture2D
@@ -35,6 +38,15 @@ func _process(delta: float) -> void:
 		_art.position.y = sin(_t * 2.0) * 2.5
 		_art.scale = Vector2.ONE * (1.0 + sin(_t * 5.0) * 0.08)
 	queue_redraw()
+
+## 长夜级：附近没有敌人就把这颗补给删掉（留作"打掉敌人才拿得到"的奖励）
+func _maybe_drop() -> void:
+	if not is_inside_tree():
+		return
+	for e in get_tree().get_nodes_in_group(&"enemy"):
+		if (e as Node2D).global_position.distance_to(global_position) < 300.0:
+			return
+	queue_free()
 
 func _on_body_entered(body: Node2D) -> void:
 	var player := body as Player
