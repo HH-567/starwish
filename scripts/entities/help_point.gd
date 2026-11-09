@@ -86,20 +86,29 @@ func _cinematic(player: Player) -> void:
 	if Game.flow != Game.Flow.CHASE:
 		return
 	var boss := get_tree().get_first_node_in_group(&"boss") as Boss
-	var boss_at := boss.global_position if boss != null else global_position
+	# 特写要同时框住"帮忙的小人 + 被影响的噬光者"，不然只看得到特效、看不到 boss 的反应。
+	var boss_at := global_position
+	if boss != null:
+		boss_at = boss.global_position
+	var mid := (global_position + boss_at) * 0.5
+	var span := global_position.distance_to(boss_at)
+	# 距离越远拉得越开（视口 1280 宽，留 15% 边）
+	var zoom_to := clampf(1100.0 / maxf(span, 260.0), 0.5, 2.0)
 	# 高速时把特效放大，特写里才看得清
 	var speed_mul := 1.0 + clampf(player.velocity.length() / 700.0, 0.0, 1.2)
 	HelpFx.spawn(get_parent(), global_position, boss_at, Npc.GLOW, speed_mul)
 	var cam := player.get_node_or_null(^"Camera") as Camera2D
 	if cam == null or not cam.has_method("sweep"):
 		return
-	# 铺路演出可能正占着镜头：等它结束再推（最多等 2 秒，别把特写丢了）
-	var waited := 0.0
-	while cam.has_method("is_sweeping") and cam.call("is_sweeping") and waited < 2.0:
+	# 铺路演出可能正占着镜头：等它结束再推（最多等 120 帧，别把特写丢了）
+	for i in 120:
+		if not cam.has_method("is_sweeping") or not cam.call("is_sweeping"):
+			break
+		if not is_inside_tree():
+			return
 		await get_tree().process_frame
-		waited += get_process_delta_time()
 	# 推过去特写；结束时镜头自己的平滑会把视角带回小星，不用再来一次 sweep
-	cam.sweep(global_position, CINE_IN, CINE_ZOOM)
+	cam.sweep(mid, CINE_IN, zoom_to)
 
 ## 按职业帮一次。园丁、画家、矿工的帮助就是他们的子节点（花、光门、隧道），这里不用再做什么。
 func _help(player: Player) -> void:
