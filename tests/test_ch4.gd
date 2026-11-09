@@ -68,7 +68,7 @@ func _after_locksmith() -> bool:
 	await _load()
 	# 锁匠救过：门还在，但小星走近会自己打开（有 0.3 秒收门动画）
 	_check("锁匠已救：门还在", _doors() == 1, "%d" % _doors())
-	_put(Vector2i(60, 20), Player.LightMode.SCATTER)
+	_put(Vector2i(57, 20), Player.LightMode.SCATTER)
 	await _frames(40)
 	_check("走近之后门打开", _doors() == 0, "%d" % _doors())
 	_put(Vector2i(63, 20), Player.LightMode.SCATTER, Vector2.UP)

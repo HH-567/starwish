@@ -10,7 +10,7 @@ enum State { CLOSED, OPEN }
 const COLOR := Color("2c3350")
 const EDGE := Color("8a93b8")
 ## 锁匠救过之后，小星进到这个距离以内门就开（像素）。
-const OPEN_RANGE := 120.0
+const OPEN_RANGE := 80.0
 ## 开门动画多长（秒）。
 const OPEN_TIME := 0.30
 ## 美术图：128×32 的横向闸门，按碰撞盒拉伸。
