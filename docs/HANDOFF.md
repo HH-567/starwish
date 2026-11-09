@@ -1,0 +1,303 @@
+# 交接文档 · 星愿：撞碎长夜
+
+> 给接手的人（Claude）：这份文档把「怎么跑起来、代码怎么组织、哪些坑不能再踩、还剩什么没做」一次说清。
+> 先看第 1、2、3 节把环境跑通，再看第 8 节（踩坑清单）——那里的每一条都是实际踩出来的。
+
+---
+
+## 1. 一句话现状
+
+Godot 4.7.2 做的 2D 像素风叙事跑酷/潜行游戏，五个章节 + 终章 boss 追逐 + 双结局。
+**23 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
+
+---
+
+## 2. 环境与路径
+
+| 项 | 值 |
+|---|---|
+| 引擎 | `C:\tools\godot-4.7.2\Godot_v4.7.2-stable_win64_console.exe` |
+| 项目根 | `C:\Users\21397\Desktop\环境检查\starwish` |
+| 导出目标 | Web（`build/index.html`，已在 `export_presets.cfg` 配好） |
+
+**每次 headless 运行前都要把 APPDATA 指到项目内**，否则会读到真实的用户存档、干扰测试：
+
+```powershell
+$env:APPDATA = 'C:\Users\21397\Desktop\环境检查\starwish\.tmp_build\appdata'
+```
+
+---
+
+## 3. 五条命令（记住这五条就够）
+
+```powershell
+$G = 'C:\tools\godot-4.7.2\Godot_v4.7.2-stable_win64_console.exe'
+$env:APPDATA = 'C:\Users\21397\Desktop\环境检查\starwish\.tmp_build\appdata'
+
+# 1) 改了脚本 / 资源 / class_name 之后：重新导入
+& $G --headless --path . --import
+
+# 2) 改了 tools/*_map.txt 之后：重建关卡场景（必须！）
+& $G --headless --path . 'res://tools/build_test_levels.tscn'
+
+# 3) 跑单个测试
+& $G --headless --path . --fixed-fps 60 'res://tests/test_ch0.tscn'
+
+# 4) 跑全部测试（PowerShell 批量）
+$tests = (Get-ChildItem tests -Filter '*.tscn').BaseName
+foreach ($t in $tests) { & $G --headless --path . --fixed-fps 60 "res://tests/$t.tscn" }
+
+# 5) 导出 Web
+& $G --headless --path . --export-release 'Web' 'build/index.html'
+```
+
+判读：测试输出 `RESULT PASS，失败 0 项` 且退出码 0 才算过。
+
+---
+
+## 4. 目录结构
+
+```
+starwish/
+├─ project.godot            自动加载：Save / Game / Audio / Controls
+├─ export_presets.cfg       Web 导出配置
+├─ scenes/
+│  ├─ levels/               ★ 生成物，不要手改（ch0..ch4、chase_lane、finale、test_*）
+│  ├─ entities/             实体场景（npc / enemy / boss / mirror / bars / iron_door …）
+│  └─ ui/                   title / hud / pause_menu / settings / credits / ending
+├─ scripts/
+│  ├─ autoload/             save.gd  game.gd  audio.gd  controls.gd
+│  ├─ data/                 tuning.gd  layers.gd  chapters 表
+│  ├─ entities/             玩家、星星光、NPC、敌人、boss、镜子、栅栏、铁门…
+│  ├─ levels/               chapter.gd（章节基类）、finale.gd
+│  ├─ fx/                   shatter / dissolve / debris / hit_burst / help_fx / boss_fx / lighting
+│  └─ ui/                   title / hud / pause_menu / settings / credits / gear_icon / icon_button
+├─ tools/                   ★ 关卡源文件 + 构建器 + 探针 + 截图工具
+│  ├─ *_map.txt / *_lane.txt   ASCII 地图（唯一的关卡真源）
+│  ├─ build_test_levels.gd     地图 → 场景 的构建器
+│  ├─ probe_*.gd               诊断探针（迷宫/镜子/医生/F6/标题状态）
+│  └─ shots_*.gd               截图小场景
+├─ tests/                   23 个 headless 测试
+├─ assets/art/              位图美术（按 22 个类别分目录，见 docs/art-spec.md）
+├─ audio/                   10 个音效 wav + bgm/ 9 首（本地合成的占位曲）
+├─ fonts/                   CJK 字体
+└─ docs/                    ★ 设计/美术/音频/踩坑文档，见第 9 节索引
+```
+
+---
+
+## 5. 关卡生成流程（铁律）
+
+关卡**不是手摆的**，是从 ASCII 文本生成的：
+
+```
+tools/ch1_map.txt  ──┐
+tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  scenes/levels/ch1_vine.tscn
+```
+
+**铁律**：
+
+1. 只改 `tools/*_map.txt`，**永远不要**手改 `scenes/levels/*.tscn`（会被下次构建覆盖）；
+2. 改完地图**必须先跑构建**，再跑测试，否则测的是旧场景（这个坑踩过好几次，会误判成代码坏了）；
+3. 加/删 `class_name`、改资源路径后先 `--import`。
+
+### 地图字符表（常用）
+
+| 字符 | 含义 | 字符 | 含义 |
+|---|---|---|---|
+| `#` | 墙 | `.` | 空地 |
+| `@` | 出生点 | `E` | 出口 |
+| `*` | 补给星屑 | `'` | 面包屑 |
+| `w g D a G M m L p q c Z` | 各职业 NPC | `n` | 无名 NPC |
+| `-` `\|` `/` `\` | **镜子**（四个方向） | `H` | 栅栏（挡人透光） |
+| `I` | 铁门（锁匠） | `T` | 矿工隧道 |
+| `>` `<` `^` `v` | 加速带（四个方向） | `A` `B` | 虫洞两端 |
+
+> ⚠️ 最容易弄错：`-` 是**镜子**不是栅栏。要「挡人不挡光」用 `H`。
+
+---
+
+## 6. 测试清单（23 项）
+
+| 测试 | 覆盖 |
+|---|---|
+| `test_save` | 存档读写、版本迁移 |
+| `test_collisions` | 碰撞、反弹、撞碎 |
+| `test_light` | 光照、救人、铁门、栅栏 |
+| `test_light_level` | 完整关卡光照流程（12 个职业全救） |
+| `test_level_smoke` | 所有关卡能加载、有出口 |
+| `test_boss` | boss 状态机、击退、减速 |
+| `test_chase` | 追逐段 |
+| `test_ch0`～`test_ch4` | 各章通关脚本 |
+| `test_hazards` | 陷阱 |
+| `test_enemy` | 影鬼行为、击杀 |
+| `test_death_fx` | 死亡动画时长 |
+| `test_full` | 12 职业不重不漏、全流程 |
+| `test_audio` | 音效触发、音量 |
+| `test_settings` | 音量、三档难度开关、设置面板 |
+| `test_touch` | 触屏按钮布局 |
+| `test_flow` | 标题→游戏→暂停→结局的流程 |
+| `test_finale` | 终章追逐、加速带、双结局（迷宫在此测试里被抹平） |
+| `test_lanes` | 赛道段拼接 |
+| `test_stage` | 速度阶段阈值 |
+
+---
+
+## 7. 已完成的系统
+
+### 7.1 光照与黑夜
+- 全场 `CanvasModulate` 压暗，玩家自带光；`scripts/fx/lighting.gd` 统一封装 `unshaded()` / 点光 / 锥光。
+- 两种模式：**散射**（半径 90–220px，随亮度变）与**聚光**（锥形、16° 半角、射程 ×2.2）。
+- 聚光撞到 `Mirror` 会**反射一次**（`star_light._shine`），反射光同样能救人。
+- 本体常亮一盏 46px 小灯，聚光时主角不会陷进黑暗。
+
+### 7.2 救人（12 职业，一个不重不漏）
+- 站进光里等 `wake_time`；乐手/听众需要配对。
+- 救人**不再提升亮度上限**（上限固定 60），靠补给与操作维持。
+- 职业帮助：守夜人给盾、园丁开花、医生回光、画家开门、向导传声、矿工挖隧道、锁匠开门、邮差送信、乐手击退 boss、听众、钟表匠减速 boss、科学家开虫洞。
+
+### 7.3 终章 boss 追逐
+- 六折 S 迷宫（`tools/finale_outro.txt`）：
+  - 没救锁匠 → 7 个拐弯；
+  - 救了锁匠 → 顶部直线捷径 3 个拐弯（铁门走近自己开）。
+- 加速带由 NPC 在中途部署；回程铺灯演出。
+- 双结局：撞碎噬光者 = 隐藏结局；被追上 = 普通结局。
+
+### 7.4 打击感
+- 白热冲击环 + 放射火花（`hit_burst.gd`，0.3s）
+- 敌人命中定格 0.06s 闪白，再炸开
+- 连击：0.9s 内连杀，环变大、碎片变多、音高升高
+- 撞墙/撞碎墙/死亡/boss 分级震动（`follow_camera.SHAKE_BY_HIT`）
+
+### 7.5 难度（局外可调）
+| 档位 | 变化 |
+|---|---|
+| 微光级 | 现在这样 |
+| 长夜级 | 补给只留敌人 300px 内的；救人不再回光 |
+| 永夜级 | 光衰减 ×1.7；关卡加载时每只影鬼旁多一只 |
+
+### 7.6 UI（几乎全图形，不写字）
+- 标题：小星绕椭圆轨道飞（先上后下转弯）+ 左郊区右城市背景；
+  **打通真结局后**城市才亮起、噬光者消失（`Save.endings["hidden"]`）。
+- 菜单：`▶ ↻ ✦⚙ ⌂ ✧ ▤ ✕` 全 `_draw` 画的图标（`icon_button.gd`）。
+- 设置：喇叭/音符 + 10 格音量条 + ★◐⚫ 三档难度（`settings.gd`）。
+- 制作名单：全游戏唯一写字的界面，可滚动、右上角 ✕。
+
+---
+
+## 8. 踩坑清单（重要，别重复踩）
+
+1. **改完地图不重建** → 测试跑的是旧场景，会误判"代码坏了"。永远先跑 `build_test_levels`。
+2. **`-` 是镜子不是栅栏**。栅栏是 `H`。ch1 医生房曾因此反射回原地。
+3. **镜子反射方向**：`/` 把"向上"反射成"向右"；`\` 反射成"向左"。**用探针确认，别猜**。
+4. **暂停时 UI 不响应**：任何"暂停里还要能点"的界面（暂停菜单、设置、名单）必须
+   `process_mode = Node.PROCESS_MODE_ALWAYS`，否则整块被冻住，表现为"关不掉"。
+5. **`get_process_delta_time()` 可能是 0**：不要用它做"等待超时"，会死循环。用帧数循环。
+6. **改了 `class_name` 或新增脚本**：先 `--import`，否则报"找不到类型"。
+7. **PNG 重新生成后不 `--import`** → 贴图变洋红。
+8. **`edit` 工具**：`old_string` 以换行结尾时，可能把后面的 `func` 行并进注释，改完务必回读。
+9. **PowerShell 里别写多行 Python `-c`**：中文/引号会被吞。用 `write` 工具写 `.tmp_build/*.py` 再执行。
+10. **测试里传送玩家**要落在空地上，否则卡进墙里导致测试挂起（曾卡住 5 分钟）。
+11. **标题/面板必须作为场景根**（Control）才有正确尺寸；用 Node2D 包一层会得到 0 尺寸、截图全黑。
+12. **`Audio` 在测试里默认 `locked`**：要断言音量先 `Audio.locked = false`。
+
+---
+
+## 9. 文档索引（`docs/`）
+
+| 文档 | 内容 |
+|---|---|
+| `state-machines.md` | ★ 所有状态机（玩家/敌人/boss/章节流程） |
+| `level-data-format.md` | 地图字符表与关卡数据格式 |
+| `art-spec.md` | 22 类美术资源规格与尺寸 |
+| `doubao-brief*.md` | 给豆包的出图提示词（历史） |
+| `audio-brief.md` / `bgm-status.md` | 音效/BGM 清单与替换方式 |
+| `boss-maze-status.md` | 终章迷宫的演进与探针结论 |
+| `level-design-mirror-room.md` | ch1 镜子房的解法与踩坑 |
+| `level-design-bounce.md` | 反弹谜题设计 |
+| `rooms-pass-1.md` | 逐房间用途检查 |
+| `delivery.md` | 交付清单 |
+
+---
+
+## 10. 调试与工具
+
+### 游戏内快捷键（仅调试版）
+| 键 | 作用 |
+|---|---|
+| `R` | 回到检查点 |
+| `Esc` | 暂停 |
+| `F2` | 光衰减开关 |
+| `F3` | 隐藏/显示调试面板 |
+| `F4` | 重读 tuning |
+| `F5` | 清空本章进度 |
+| **`F6`** | **一键进真结局 boss 战**（12 人全救 + 直接进追逐段） |
+
+### 探针（headless，输出到 stdout）
+```powershell
+& $G --headless --path . res://tools/probe_maze.tscn          # 迷宫可解性（拐弯数）
+& $G --headless --path . res://tools/probe_mirror.tscn        # 镜子反射：reflecting/dir/range
+& $G --headless --path . res://tools/probe_f6.tscn            # F6 的救援表
+& $G --headless --path . res://tools/probe_doctor.tscn        # ch1 医生可见性
+& $G --headless --path . res://tools/probe_bounce.tscn        # 反弹谜题
+& $G --headless --path . res://tools/probe_title_states.tscn  # 标题页两种状态
+```
+
+### 截图（渲染 + 录帧 + PIL 裁剪）
+```powershell
+& $G --path . --rendering-driver opengl3 --write-movie .tmp_build/shots/f.png --fixed-fps 30 res://tools/shots_ch0.tscn
+# 然后从 .tmp_build/shots/*.png 里挑帧
+```
+
+---
+
+## 11. 美术与音频
+
+### 美术
+- 管线：豆包出图 → 抠图/去底 → 放到 `assets/art/<类别>/` → `--import`。
+- 代码里都是 `if ResourceLoader.exists(ART)`，**没有贴图就退化成几何绘制**，所以删图不会崩，只会变丑。
+- 风格：暗色剪影 + 暖光，人物只要轮廓能看出职业。
+
+### 音频
+- `audio/*.wav`：10 个音效（44.1k 立体声）。
+- `audio/bgm/*.wav`：9 首**本地合成的占位曲**（title / ch0..ch4 / chase / ending_normal / ending_hidden）。
+- 替换方式：把 Suno 生成的曲子按同名覆盖（`.ogg` 优先于 `.wav`），**代码不用改**。
+  `Audio.play_bgm` 会依次找 `.ogg` → `.wav`。
+
+---
+
+## 12. 已知问题 / 待办（按优先级）
+
+1. **触屏/手柄未实机验证**：`Controls` 与 `tests/test_touch` 覆盖了布局，但没有真机手感验证。
+2. **BGM 是占位曲**：需要真人用 Suno 生成后替换（清单见 `docs/bgm-status.md`）。
+3. **难度切换要重进本章**才生效（有意为之，避免中途重排关卡）。
+4. **长夜级"补给只在敌人身后"是近似实现**（300px 内算"身后"），因为敌人是固定炮台、没有明确朝向。
+5. **`test_finale` 里迷宫被抹平**（`Game.debug_flat_maze`）：真实迷宫由 `probe_maze` 验。
+   如果要让自动机跑真迷宫，需要先写一个更聪明的导航器（试过三轮都失败，见 `boss-maze-status.md`）。
+6. **标题页视觉状态没有自动截图**：用 Node2D 包场景会得到 0 尺寸，需要把标题作为场景根才能截。
+7. **`assets/art/items/star_bloom.png` 未使用**（有方块伪影，已弃用）。
+
+---
+
+## 13. 接手验收清单
+
+照着走一遍，确认环境没坏：
+
+- [ ] `--import` 无报错
+- [ ] `build_test_levels` 无报错（会重建 7 个关卡场景）
+- [ ] 23 个测试全绿
+- [ ] 导出 Web 成功，浏览器打开能进标题
+- [ ] 标题页：小星绕圈飞、下面四个图标、右下角暗色名单图标
+- [ ] 按 `F6` 直接进真结局 boss 战，12 人全救
+- [ ] 设置面板（HUD 右上角齿轮）能调音量、能关
+- [ ] ch1 医生房：走不进去，只能用聚光往上的镜子反射照亮医生
+
+---
+
+## 14. 约定（请保持）
+
+- 画面上**不写字**（名单除外）；用图形表达。
+- 没有必救的人；出口永远开着；没有屏内文字提示。
+- 关卡数据只改 `tools/*.txt`，场景是生成物。
+- 改动后跑全量测试；测试不过不要提交。
+- 提交信息写清"改了什么 + 为什么"，中文即可。
