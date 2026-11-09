@@ -132,6 +132,10 @@ func _end_spot() -> void:
 
 ## 铺路演出：镜头从玩家身上脱开、沿赛道往前（往左）滑过去，一边滑一边拉远，
 ## 让玩家看清这一段跑道是怎么被点亮的。滑完自动回到跟随。
+## 正在做特写/铺路演出时返回 true（别的新演出要等它结束）。
+func is_sweeping() -> bool:
+	return _sweep_left > 0.0
+
 func sweep(to_world: Vector2, time := 1.3, zoom_to := SWEEP_ZOOM) -> void:
 	if _sweep_left > 0.0:
 		return

@@ -11,11 +11,12 @@ var color := Color("ffe9b0")
 var target := Vector2.ZERO
 var _t := 0.0
 
-static func spawn(parent: Node, from: Vector2, to: Vector2, tint := Color("ffe9b0")) -> void:
+static func spawn(parent: Node, from: Vector2, to: Vector2, tint := Color("ffe9b0"), scale_mul := 1.0) -> void:
 	if parent == null or not parent.is_inside_tree():
 		return
 	var fx := HelpFx.new()
 	fx.color = tint
+	fx.scale = Vector2.ONE * scale_mul
 	fx.target = to
 	fx.material = Lighting.unshaded()
 	fx.global_position = from

@@ -38,7 +38,8 @@ func _measure(tag: String) -> int:
 	var goal := walls.local_to_map(walls.to_local(escape.global_position))
 	print("MAZE [%s] entry=%s escape=%s 格=%s→%s" % [tag, entry.global_position, escape.global_position, start, goal])
 	var extra := {}
-	for node in outro.find_children("*", "IronDoor", true, false):
+	# 锁匠救过：铁门是"走近自己开"，对路线来说等于不存在；没救才当墙。
+	for node in ([] if Save.has_role(&"locksmith") else outro.find_children("*", "IronDoor", true, false)):
 		var door := node as IronDoor
 		if door == null:
 			continue
