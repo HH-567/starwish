@@ -19,10 +19,7 @@ func _ready() -> void:
 	for i in 90:
 		_stars.append(Vector3(randf(), randf(), randf() * TAU))
 	var box := Menu.centered_column(self)
-	box.add_child(_spacer(90))
-	box.add_child(Menu.label("星愿", 96, STAR))
-	box.add_child(Menu.label("撞碎长夜", 34, SUB))
-	box.add_child(_spacer(40))
+	box.add_child(_spacer(250))
 	_new = IconButton.make(IconButton.Kind.NEW, "新的旅程")
 	_new.pressed.connect(_on_new)
 	box.add_child(_new)
@@ -72,11 +69,23 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), BG)
 	for s in _stars:
 		draw_circle(Vector2(s.x, s.y) * size, 1.3, Color(1, 1, 1, 0.2 + 0.2 * sin(_t * 1.3 + s.z)))
-	# 标题上方的小星：一圈光晕加一颗慢慢转的五角星。
-	var c := Vector2(size.x * 0.5, size.y * 0.5 - 150.0)
+	# 小星一边向上飞、一边拖出一条渐隐的尾迹（标题这里不写字）
+	var base := Vector2(size.x * 0.5, size.y * 0.30)
+	var rise := fmod(_t * 44.0, 150.0)
+	var head_at := base + Vector2(sin(_t * 0.9) * 9.0, -rise + 75.0)
+	for i in 14:
+		var k := float(i) / 13.0
+		var tail := head_at + Vector2(sin(_t * 0.9 - k * 1.7) * 9.0 * k, k * 150.0)
+		var a := (1.0 - k) * (1.0 - k) * 0.6
+		_draw_star(tail, lerpf(10.0, 2.0, k), Color(STAR, a), _t * 0.5 - k * 0.6)
 	for k in 4:
-		draw_circle(c, 60.0 - k * 12.0, Color(STAR, 0.04 + k * 0.03))
+		draw_circle(head_at, 46.0 - k * 11.0, Color(STAR, 0.03 + k * 0.022))
+	_draw_star(head_at, 18.0, STAR, _t * 0.5)
+
+## 画一颗四角星（rot 让它慢慢转）
+func _draw_star(at: Vector2, r: float, c: Color, rot := 0.0) -> void:
 	var pts := PackedVector2Array()
-	for i in 10:
-		pts.append(c + Vector2.from_angle(_t * 0.4 + TAU * i / 10.0 - PI / 2.0) * (22.0 if i % 2 == 0 else 9.0))
-	draw_colored_polygon(pts, STAR)
+	for i in 8:
+		var a := TAU * float(i) / 8.0 - PI / 2.0 + rot
+		pts.append(at + Vector2.from_angle(a) * (r if i % 2 == 0 else r * 0.36))
+	draw_colored_polygon(pts, c)
