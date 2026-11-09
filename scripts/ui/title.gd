@@ -32,15 +32,15 @@ func _ready() -> void:
 	var gear := IconButton.make(IconButton.Kind.GEAR, "设置")
 	gear.pressed.connect(_open_settings)
 	box.add_child(gear)
-	# 制作名单：低亮度的名单图标，不抢主菜单
-	var credits := IconButton.make(IconButton.Kind.LIST, "制作名单")
-	credits.dim = true
-	credits.pressed.connect(_open_credits)
-	box.add_child(credits)
 	_continue = IconButton.make(IconButton.Kind.PLAY, "继续")
 	_continue.pressed.connect(_on_continue)
 	_continue.visible = Game.can_continue()
 	box.add_child(_continue)
+	# 制作名单放最下面：低亮度的名单图标，不抢主菜单
+	var credits := IconButton.make(IconButton.Kind.LIST, "制作名单")
+	credits.dim = true
+	credits.pressed.connect(_open_credits)
+	box.add_child(credits)
 	(_continue if _continue.visible else _new).grab_focus()
 
 func _open_credits() -> void:

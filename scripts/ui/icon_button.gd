@@ -4,7 +4,7 @@ extends Button
 ## 保留 Button 的焦点 / 键盘导航 / 点击语义。
 ##   ▶ 继续   ↻ 回到检查点   ✦⚙ 设置   ⌂ 回到标题   ✧ 新的旅程
 
-enum Kind { PLAY, RESTART, GEAR, HOME, NEW, LIST }
+enum Kind { PLAY, RESTART, GEAR, HOME, NEW, LIST, CLOSE }
 
 const IDLE := Color("b9c8ff")
 const HOT := Color("ffd75a")
@@ -62,6 +62,9 @@ func _draw() -> void:
 				m + Vector2(0, -r * 1.15), m + Vector2(r, -r * 0.1), m + Vector2(-r, -r * 0.1)]), c)
 			draw_rect(Rect2(m + Vector2(-r * 0.62, -r * 0.1), Vector2(r * 1.24, r * 0.95)), c)
 			draw_rect(Rect2(m + Vector2(-r * 0.16, r * 0.24), Vector2(r * 0.32, r * 0.6)), Color(0.04, 0.05, 0.1))
+		Kind.CLOSE:
+			draw_line(m + Vector2(-r, -r), m + Vector2(r, r), c, 4.0, true)
+			draw_line(m + Vector2(r, -r), m + Vector2(-r, r), c, 4.0, true)
 		Kind.LIST:
 			# 名单：三条横线 + 前面的小圆点
 			for i in 3:

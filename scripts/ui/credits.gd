@@ -26,14 +26,22 @@ func _ready() -> void:
 	dim.color = Color(0.01, 0.015, 0.035, 0.94)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	dim.gui_input.connect(_on_dim_input)
 	add_child(dim)
 
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.follow_focus = true
 	add_child(scroll)
+
+	# 右上角的关闭按钮（固定，不跟着滚）
+	var close := IconButton.make(IconButton.Kind.CLOSE, "关闭")
+	close.dim = true
+	close.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	close.position = Vector2(-86, 18)
+	close.pressed.connect(_close)
+	add_child(close)
 
 	var center := CenterContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -60,11 +68,6 @@ func _gap(h: float) -> Control:
 	var c := Control.new()
 	c.custom_minimum_size = Vector2(0, h)
 	return c
-
-func _on_dim_input(event: InputEvent) -> void:
-	var mb := event as InputEventMouseButton
-	if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
-		_close()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
