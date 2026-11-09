@@ -15,6 +15,7 @@ var _confirm := false
 
 func _ready() -> void:
 	Game.enter_title()
+	Audio.play_bgm(&"title")
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	for i in 90:
 		_stars.append(Vector3(randf(), randf(), randf() * TAU))
@@ -72,6 +73,60 @@ func _draw() -> void:
 	_draw_scene()
 	_draw_star_flight()
 
+## 左边：郊区。低矮的坡屋顶房子 + 栅栏 + 光秃的树。
+func _draw_suburb(x0: float, x1: float, ground: float) -> void:
+	var base := Color(0.075, 0.085, 0.13)
+	var roof := Color(0.10, 0.105, 0.16)
+	var i := 0
+	var x := x0 - 20.0
+	while x < x1:
+		var w := 84.0 + fmod(float(i) * 37.0, 46.0)
+		var h := 52.0 + fmod(float(i) * 23.0, 26.0)
+		var top := ground - h
+		draw_rect(Rect2(x, top, w, h), base)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(x - 8.0, top), Vector2(x + w + 8.0, top), Vector2(x + w * 0.5, top - 30.0)]), roof)
+		# 一扇暖窗
+		draw_rect(Rect2(x + w * 0.3, top + h * 0.35, 14.0, 14.0), Color(1.0, 0.85, 0.55, 0.22))
+		x += w + 26.0
+		i += 1
+	# 栅栏
+	var fy := ground - 18.0
+	for k in int((x1 - x0) / 16.0):
+		draw_rect(Rect2(x0 + k * 16.0, fy, 3.0, 18.0), Color(0.09, 0.095, 0.14))
+	draw_rect(Rect2(x0, fy + 4.0, x1 - x0, 3.0), Color(0.09, 0.095, 0.14))
+	# 两棵光秃的树
+	for tx: float in [x0 + 120.0, x0 + 300.0]:
+		draw_rect(Rect2(tx - 3.0, ground - 64.0, 6.0, 64.0), base)
+		draw_line(Vector2(tx, ground - 52.0), Vector2(tx - 16.0, ground - 74.0), base, 3.0, true)
+		draw_line(Vector2(tx, ground - 58.0), Vector2(tx + 18.0, ground - 80.0), base, 3.0, true)
+
+## 右边：城市。高低错落的楼 + 点点亮窗 + 天线。
+func _draw_city(x0: float, x1: float, ground: float) -> void:
+	var base := Color(0.065, 0.075, 0.13)
+	var i := 0
+	var x := x0
+	while x < x1:
+		var w := 46.0 + fmod(float(i) * 31.0, 44.0)
+		var h := 120.0 + fmod(float(i) * 57.0, 120.0)
+		var top := ground - h
+		draw_rect(Rect2(x, top, w, h), base)
+		# 天台的灯 / 天线
+		draw_rect(Rect2(x + w * 0.5 - 1.5, top - 16.0, 3.0, 16.0), base)
+		draw_circle(Vector2(x + w * 0.5, top - 16.0), 2.0, Color(1.0, 0.3, 0.35, 0.5))
+		# 亮窗（稀疏、微弱）
+		var cols := int(w / 16.0)
+		var rows := int(h / 20.0)
+		for cx in cols:
+			for cy in rows:
+				if fmod(float(cx * 7 + cy * 3 + i * 5), 4.0) > 1.4:
+					continue
+				var lit := 0.10 + 0.12 * float((cx * 3 + cy * 5 + i) % 3)
+				draw_rect(Rect2(x + 8.0 + cx * 16.0, top + 12.0 + cy * 20.0, 8.0, 10.0),
+					Color(1.0, 0.86, 0.6, lit))
+		x += w + 14.0
+		i += 1
+
 ## 背景"游戏内容"：地砖、几盏路、站着的小人、几颗掉在地上的星屑、远处的噬光者。
 ## 全是剪影，不抢小星的气场。
 func _draw_scene() -> void:
@@ -86,6 +141,8 @@ func _draw_scene() -> void:
 		for x in range(-1, int(w / 68.0) + 2):
 			var bx := x * 68.0 + offset
 			draw_rect(Rect2(bx, y, 62.0, 22.0), Color(0.07, 0.065, 0.10))
+	_draw_suburb(0.0, w * 0.46, floor_y)
+	_draw_city(w * 0.54, w, floor_y)
 	# 远处噬光者：一大团暗影 + 一圈紫边（很淡）
 	var boss := Vector2(w * 0.80, h * 0.30)
 	for k in 5:
