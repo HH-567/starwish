@@ -12,6 +12,8 @@ const REFLECT_NUDGE := 2.0
 
 ## 本帧聚光的中心射线是否打到玻璃；反射光的起点、方向、剩余距离。判定和画面共用。
 var reflecting := false
+## 本体常亮的小灯。
+var _self_light: PointLight2D
 var reflect_from := Vector2.ZERO
 var reflect_dir := Vector2.RIGHT
 var reflect_range := 0.0
@@ -34,6 +36,9 @@ func _ready() -> void:
 	_reflect = _cone_light()
 	_reflect.top_level = true
 	add_child(_reflect)
+	# 本体常亮的一盏小灯：聚光时散射灯是关的，不补这盏星体会陷进暗处
+	_self_light = Lighting.point_light(46.0, COLOR, 0.85, false)
+	add_child(_self_light)
 
 func _physics_process(delta: float) -> void:
 	reflecting = false
@@ -100,6 +105,8 @@ func _update_lights() -> void:
 	var cone := Lighting.cone_texture(t.focus_half_angle)
 	_scatter.visible = a > 0.0 and not focus
 	_scatter.energy = a
+	if _self_light != null:
+		_self_light.energy = 0.85 * a
 	_scatter.texture_scale = radius * scale_per_px
 	_focus.visible = a > 0.0 and focus
 	_focus.energy = FOCUS_ENERGY * a
