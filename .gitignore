@@ -3,3 +3,5 @@ build/
 *.tmp
 ## 临时目录：打包、截图、临时存档都放这里，不进版本库
 .tmp_*/
+## Windows 拷过来时附带的"来自网络"标记
+*:Zone.Identifier
