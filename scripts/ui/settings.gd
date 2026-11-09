@@ -1,110 +1,111 @@
 extends CanvasLayer
-## 设置面板：音效 / 音乐音量，局外还能调难度。
-## 局内（关卡里）只给音量；难度只在标题界面能改——难度会改关卡内容，中途改会让人莫名其妙。
-##   docs/settings.md
+## 设置面板：全图形，没有文字（和游戏"画面上不写字"的规矩一致）。
+## 局内只给两条音量；难度只在局外显示（改难度要重进本章才生效）。
+##   音效 [◀] ▮▮▮▮▮▯▯▯▯▯ [▶]
+##   音乐 [◀] ▮▮▮▮▮▮▮▯▯▯ [▶]
+##   难度  ★   ◐   ●      （★ 微光 / ◐ 长夜 / ● 永夜）
+##   关闭  ✕
 
 signal closed
 
 const STEP := 0.1
-const DIFFICULTY_NAMES := ["微光级", "长夜级", "永夜级"]
-const DIFFICULTY_TIPS := [
-	"现在这样：补给管够，救人也回光。",
-	"补给只剩敌人身后的那几颗；救人不再回光。",
-	"光掉得更快，敌人更多。",
-]
+const PIPS := 10
 
-var _sfx_value: Label
-var _music_value: Label
-var _diff_value: Label
-var _diff_tip: Label
-var _diff_row: HBoxContainer
-var _first: Button
+var _sfx_pips: Control
+var _music_pips: Control
+var _diff_picks: Array[Control] = []
+var _was_paused := false
 
 static func in_game() -> bool:
 	return Game.flow == Game.Flow.PLAYING or Game.flow == Game.Flow.CHASE or Game.flow == Game.Flow.PAUSED
 
-var _was_paused := false
-
 func _ready() -> void:
 	layer = 95
-	# 局内打开时暂停游戏，调音量不会边跑边点
 	_was_paused = get_tree().paused
 	if in_game():
 		get_tree().paused = true
+
 	var dim := ColorRect.new()
-	dim.color = Color(0.01, 0.02, 0.05, 0.72)
+	dim.color = Color(0.01, 0.02, 0.05, 0.8)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
-	var box := Menu.centered_column(self, 18)
-	box.add_child(Menu.label("设置", 40, Menu.HOT))
-	box.add_child(Menu.label("★", 22, Color(Menu.HOT, 0.7)))
+	var box := Menu.centered_column(self, 22)
+	box.add_child(_star_badge())
 
-	_sfx_value = _row(box, "音效", func(d: int) -> void: _bump("sfx", d))
-	_music_value = _row(box, "音乐", func(d: int) -> void: _bump("music", d))
+	_sfx_pips = _volume_row(box, Icon.Kind.SFX, "sfx")
+	_music_pips = _volume_row(box, Icon.Kind.MUSIC, "music")
 
-	_diff_row = HBoxContainer.new()
-	_diff_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_diff_row.add_theme_constant_override("separation", 10)
-	box.add_child(_diff_row)
-	for i in DIFFICULTY_NAMES.size():
-		var pick := Menu.button(DIFFICULTY_NAMES[i], func() -> void: _pick_difficulty(i))
-		pick.add_theme_font_size_override("font_size", 24)
-		_diff_row.add_child(pick)
-	_diff_value = Menu.label("", 20, Color(Menu.IDLE, 0.75))
-	box.add_child(_diff_value)
-	_diff_tip = Menu.label("", 19, Color(Menu.IDLE, 0.55))
-	box.add_child(_diff_tip)
-	_diff_row.visible = not in_game()
+	var diff := HBoxContainer.new()
+	diff.alignment = BoxContainer.ALIGNMENT_CENTER
+	diff.add_theme_constant_override("separation", 26)
+	box.add_child(diff)
+	diff.visible = not in_game()
+	var kinds := [Icon.Kind.STAR, Icon.Kind.HALF, Icon.Kind.ECLIPSE]
+	for i in 3:
+		var pick := Icon.new(kinds[i])
+		pick.custom_minimum_size = Vector2(58, 58)
+		pick.pressed.connect(func() -> void: _pick_difficulty(i))
+		diff.add_child(pick)
+		_diff_picks.append(pick)
 
-	_first = Menu.button("关 闭", _close)
-	box.add_child(_first)
+	var close := Icon.new(Icon.Kind.CLOSE)
+	close.custom_minimum_size = Vector2(54, 54)
+	close.pressed.connect(_close)
+	box.add_child(close)
 	_refresh()
-	if _first != null:
-		_first.grab_focus()
 
-func _row(box: VBoxContainer, title: String, on_step: Callable) -> Label:
+func _star_badge() -> Control:
+	var badge := Icon.new(Icon.Kind.STAR)
+	badge.custom_minimum_size = Vector2(46, 46)
+	return badge
+
+func _volume_row(box: VBoxContainer, kind: int, which: String) -> Control:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 16)
 	box.add_child(row)
-	var left := Menu.button("◀", func() -> void: on_step.call(-1))
-	var value := Menu.label("", 24, Menu.IDLE)
-	value.custom_minimum_size = Vector2(110, 0)
-	var right := Menu.button("▶", func() -> void: on_step.call(1))
-	var name := Menu.label(title, 24, Menu.IDLE)
-	name.custom_minimum_size = Vector2(90, 0)
-	row.add_child(name)
-	row.add_child(left)
-	row.add_child(value)
-	row.add_child(right)
-	return value
+	var icon := Icon.new(kind)
+	icon.custom_minimum_size = Vector2(46, 46)
+	row.add_child(icon)
+	var less := Icon.new(Icon.Kind.LEFT)
+	less.custom_minimum_size = Vector2(34, 34)
+	less.pressed.connect(func() -> void: _bump(which, -1))
+	row.add_child(less)
+	var pips := Pips.new()
+	pips.custom_minimum_size = Vector2(PIPS * 16.0, 26)
+	row.add_child(pips)
+	var more := Icon.new(Icon.Kind.RIGHT)
+	more.custom_minimum_size = Vector2(34, 34)
+	more.pressed.connect(func() -> void: _bump(which, 1))
+	row.add_child(more)
+	return pips
 
 func _bump(which: String, dir: int) -> void:
-	match which:
-		"sfx":
-			Save.sfx_volume = clampf(snappedf(Save.sfx_volume + dir * STEP, STEP), 0.0, 1.0)
-		"music":
-			Save.music_volume = clampf(snappedf(Save.music_volume + dir * STEP, STEP), 0.0, 1.0)
+	if which == "sfx":
+		Save.sfx_volume = clampf(snappedf(Save.sfx_volume + dir * STEP, STEP), 0.0, 1.0)
+	else:
+		Save.music_volume = clampf(snappedf(Save.music_volume + dir * STEP, STEP), 0.0, 1.0)
 	Audio.apply_volume()
-	_refresh()
 	Audio.play(&"warp", 1.35)
+	_refresh()
 
 func _pick_difficulty(index: int) -> void:
 	Save.difficulty = index
 	Game.apply_difficulty()
+	Audio.play(&"warp", 1.2)
 	_refresh()
-	Audio.play(&"warp", 1.35)
 
 func _refresh() -> void:
-	if _sfx_value != null:
-		_sfx_value.text = "%d%%" % roundi(Save.sfx_volume * 100.0)
-	if _music_value != null:
-		_music_value.text = "%d%%" % roundi(Save.music_volume * 100.0)
-	if _diff_value != null:
-		_diff_value.text = "难度：%s" % DIFFICULTY_NAMES[Save.difficulty]
-	if _diff_tip != null:
-		_diff_tip.text = DIFFICULTY_TIPS[Save.difficulty]
+	if _sfx_pips != null:
+		_sfx_pips.value = Save.sfx_volume
+		_sfx_pips.queue_redraw()
+	if _music_pips != null:
+		_music_pips.value = Save.music_volume
+		_music_pips.queue_redraw()
+	for i in _diff_picks.size():
+		_diff_picks[i].selected = i == Save.difficulty
+		_diff_picks[i].queue_redraw()
 
 func _close() -> void:
 	if in_game():
@@ -112,3 +113,95 @@ func _close() -> void:
 	Save.write()
 	closed.emit()
 	queue_free()
+
+# ---------------- 画图标的小控件 ----------------
+
+class Icon:
+	extends Control
+
+	enum Kind { SFX, MUSIC, LEFT, RIGHT, CLOSE, STAR, HALF, ECLIPSE }
+
+	signal pressed
+
+	var kind := Kind.SFX
+	var selected := false
+	var _hover := false
+
+	func _init(k: int = Kind.SFX) -> void:
+		kind = k
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		mouse_entered.connect(func() -> void: _hover = true; queue_redraw())
+		mouse_exited.connect(func() -> void: _hover = false; queue_redraw())
+
+	func _gui_input(event: InputEvent) -> void:
+		var mb := event as InputEventMouseButton
+		if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			accept_event()
+			pressed.emit()
+
+	func _draw() -> void:
+		var hot := Color("ffd75a")
+		var idle := Color("b9c8ff")
+		var c := hot if (_hover or selected) else idle
+		var m := size * 0.5
+		var r := minf(size.x, size.y) * 0.36
+		match kind:
+			Kind.SFX:
+				# 喇叭 + 两道声波
+				draw_colored_polygon(PackedVector2Array([
+					m + Vector2(-r, -r * 0.35), m + Vector2(-r * 0.45, -r * 0.35),
+					m + Vector2(r * 0.15, -r), m + Vector2(r * 0.15, r),
+					m + Vector2(-r * 0.45, r * 0.35), m + Vector2(-r, r * 0.35)]), c)
+				draw_arc(m + Vector2(r * 0.2, 0), r * 0.55, -0.9, 0.9, 16, c, 2.0, true)
+				draw_arc(m + Vector2(r * 0.2, 0), r * 0.95, -0.9, 0.9, 20, Color(c, 0.7), 2.0, true)
+			Kind.MUSIC:
+				# 八分音符
+				draw_circle(m + Vector2(-r * 0.25, r * 0.55), r * 0.34, c)
+				draw_line(m + Vector2(r * 0.05, r * 0.55), m + Vector2(r * 0.05, -r * 0.85), c, 3.0)
+				draw_line(m + Vector2(r * 0.05, -r * 0.85), m + Vector2(r * 0.75, -r * 0.55), c, 3.0)
+			Kind.LEFT:
+				draw_colored_polygon(PackedVector2Array([
+					m + Vector2(-r * 0.6, 0), m + Vector2(r * 0.5, -r * 0.8), m + Vector2(r * 0.5, r * 0.8)]), c)
+			Kind.RIGHT:
+				draw_colored_polygon(PackedVector2Array([
+					m + Vector2(r * 0.6, 0), m + Vector2(-r * 0.5, -r * 0.8), m + Vector2(-r * 0.5, r * 0.8)]), c)
+			Kind.CLOSE:
+				draw_line(m + Vector2(-r, -r), m + Vector2(r, r), c, 4.0, true)
+				draw_line(m + Vector2(r, -r), m + Vector2(-r, r), c, 4.0, true)
+			Kind.STAR:
+				var pts := PackedVector2Array()
+				for i in 8:
+					var a := TAU * float(i) / 8.0 - PI / 2.0
+					var rr := r if i % 2 == 0 else r * 0.26
+					pts.append(m + Vector2.from_angle(a) * rr)
+				draw_colored_polygon(pts, c)
+			Kind.HALF:
+				draw_circle(m, r, Color(c, 0.35))
+				draw_colored_polygon(PackedVector2Array(_half_arc(m, r)), c)
+				draw_arc(m, r, 0.0, TAU, 28, c, 1.5, true)
+			Kind.ECLIPSE:
+				draw_circle(m, r, Color(0.02, 0.01, 0.04, 0.95))
+				draw_arc(m, r, 0.0, TAU, 28, c, 3.0, true)
+				draw_arc(m, r * 0.72, 0.0, TAU, 24, Color(c, 0.5), 1.5, true)
+
+	func _half_arc(m: Vector2, r: float) -> Array[Vector2]:
+		var out: Array[Vector2] = []
+		out.append(m)
+		for i in 17:
+			var a := -PI * 0.5 + PI * float(i) / 16.0
+			out.append(m + Vector2.from_angle(a) * r)
+		return out
+
+class Pips:
+	extends Control
+
+	var value := 1.0
+
+	func _draw() -> void:
+		var n := 10
+		var w := size.x / float(n * 2 - 1)
+		for i in n:
+			var x := i * w * 2.0
+			var filled := float(i) < value * n - 0.05
+			var col := Color("ffd75a") if filled else Color("b9c8ff", 0.28)
+			draw_rect(Rect2(x, 0.0, w, size.y), col)
