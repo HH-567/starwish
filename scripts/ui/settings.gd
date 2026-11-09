@@ -21,6 +21,12 @@ static func in_game() -> bool:
 
 func _ready() -> void:
 	layer = 95
+	# 关掉之前可能还留着一块（连点齿轮会开出两块，看着像"关不掉"）
+	for old in get_tree().get_nodes_in_group(&"settings_panel"):
+		old.queue_free()
+	add_to_group(&"settings_panel")
+	# 暂停时也要能点：默认继承的节点在暂停时不处理输入，那样就"关不了"了
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_was_paused = get_tree().paused
 	if in_game():
 		get_tree().paused = true
@@ -28,6 +34,8 @@ func _ready() -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0.01, 0.02, 0.05, 0.8)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# 挡住后面的暂停菜单：不然点到画面上会误触"回到标题"
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
 
 	var box := Menu.centered_column(self, 22)
@@ -50,7 +58,7 @@ func _ready() -> void:
 		_diff_picks.append(pick)
 
 	var close := Icon.new(Icon.Kind.CLOSE)
-	close.custom_minimum_size = Vector2(54, 54)
+	close.custom_minimum_size = Vector2(76, 76)
 	close.pressed.connect(_close)
 	box.add_child(close)
 	_refresh()
@@ -106,6 +114,11 @@ func _refresh() -> void:
 	for i in _diff_picks.size():
 		_diff_picks[i].selected = i == Save.difficulty
 		_diff_picks[i].queue_redraw()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
+		get_viewport().set_input_as_handled()
+		_close()
 
 func _close() -> void:
 	if in_game():
