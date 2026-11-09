@@ -95,13 +95,13 @@ func _bump(which: String, dir: int) -> void:
 	else:
 		Save.music_volume = clampf(snappedf(Save.music_volume + dir * STEP, STEP), 0.0, 1.0)
 	Audio.apply_volume()
-	Audio.play(&"warp", 1.35)
+	Audio.play(&"ui", 1.0 + 0.04 * dir)
 	_refresh()
 
 func _pick_difficulty(index: int) -> void:
 	Save.difficulty = index
 	Game.apply_difficulty()
-	Audio.play(&"warp", 1.2)
+	Audio.play(&"ui", 0.9)
 	_refresh()
 
 func _refresh() -> void:

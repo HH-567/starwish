@@ -9,13 +9,17 @@ var _parts: Array = []
 var _t := 0.0
 
 ## glow 为真时碎片自己发光，暗处也看得见。
-static func spawn(parent: Node, pos: Vector2, tint: Color, count := 14, speed := 260.0, size := 7.0, glow := false) -> void:
+## dir 不为零时碎片只往 dir 两侧 spread 弧度的扇形里飞（撞墙的火花从墙面往外溅）。
+static func spawn(parent: Node, pos: Vector2, tint: Color, count := 14, speed := 260.0, size := 7.0, glow := false, dir := Vector2.ZERO, spread := PI) -> void:
+	if parent == null or not parent.is_inside_tree():
+		return
 	var fx := Debris.new()
 	fx.color = tint
 	if glow:
 		fx.material = Lighting.unshaded()
 	for i in count:
-		var vel := Vector2.from_angle(randf() * TAU) * speed * randf_range(0.35, 1.0)
+		var angle := randf() * TAU if dir == Vector2.ZERO else dir.angle() + randf_range(-spread, spread)
+		var vel := Vector2.from_angle(angle) * speed * randf_range(0.35, 1.0)
 		fx._parts.append([Vector2.ZERO, vel, randf() * TAU, randf_range(-9.0, 9.0), size * randf_range(0.6, 1.3)])
 	parent.add_child(fx)
 	fx.global_position = pos

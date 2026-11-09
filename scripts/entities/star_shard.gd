@@ -53,6 +53,7 @@ func _on_body_entered(body: Node2D) -> void:
 	if player == null:
 		return
 	player.add_light(Game.tuning.shard_amount)
+	Audio.play_shard()
 	Debris.spawn(get_parent(), global_position, COLOR, 10, 160.0, 4.0, true)
 	queue_free()
 

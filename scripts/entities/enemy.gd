@@ -88,9 +88,12 @@ func _physics_process(delta: float) -> void:
 			if _can_see(player):
 				aim_dir = (player.global_position - global_position).normalized()
 				_set_state(State.AIM)
+				# 瞄准声按这一只的瞄准时间变调：嗡声走到最高的那一刻正好开枪。
+				_aim_sound = Audio.play_at(&"aim", global_position, AIM_SOUND_TIME / _aim_time())
 		State.AIM:
 			if not _can_see(player):
 				# 躲进墙后面就放弃这一枪
+				_stop_aim_sound()
 				_set_state(State.IDLE)
 			else:
 				aim_dir = (player.global_position - global_position).normalized()
@@ -133,12 +136,24 @@ func _fire() -> void:
 		shot.direction = dir
 		shot.global_position = global_position + dir * (radius + 14.0)
 		get_parent().add_child(shot)
-	Audio.play(&"hit")
+	_stop_aim_sound()
+	Audio.play_at(&"shot", global_position)
+
+## 瞄准声（aim.wav）原本的长度：它从低到高走 0.6 秒。
+const AIM_SOUND_TIME := 0.6
+var _aim_sound: AudioStreamPlayer2D
+
+## 放弃瞄准或开枪时把瞄准声掐掉。声部是轮流用的，确认它还在放瞄准声再停。
+func _stop_aim_sound() -> void:
+	if _aim_sound != null and _aim_sound.stream == Audio.STREAMS[&"aim"]:
+		_aim_sound.stop()
+	_aim_sound = null
 
 ## 死：一团碎片，然后从场上消失。谁打死的记在 Game 的信号里。
 func _kill(reason: StringName) -> void:
 	if not is_inside_tree() or _dying:
 		return
+	_stop_aim_sound()
 	_dying = true
 	_hit_left = HIT_HOLD
 	_kill_reason = reason
@@ -159,7 +174,7 @@ func _burst() -> void:
 	Debris.spawn(get_parent(), global_position, EDGE_COLOR, 14 + combo * 2, 240.0, 6.0, true)
 	Game.player_hit.emit(&"kill")
 	Game.enemy_killed.emit(_kill_reason)
-	Audio.play(&"break", 1.0 + 0.06 * float(mini(combo - 1, 6)))
+	Audio.play_at(&"break", global_position, 1.0 + 0.06 * float(mini(combo - 1, 6)))
 	queue_free()
 
 ## 美术图：待机 / 瞄准 / 开火三张 32×32 剪影。
@@ -197,14 +212,15 @@ func _draw() -> void:
 	if _art != null:
 		# 有图就只画"瞄准红线"这一层游戏信息，身体交给贴图。
 		if state == State.AIM:
-			var k2 := clampf(time / maxf(aim_time, 0.01), 0.0, 1.0)
+			# 按这一只实际的瞄准时间画满：后面几章瞄得快，用 aim_time 算的话红线还没画满就开枪了。
+			var k2 := clampf(time / maxf(_aim_time(), 0.01), 0.0, 1.0)
 			draw_line(aim_dir * (radius + 2.0), aim_dir * (radius + 40.0 + 260.0 * k2),
 					Color(EYE_COLOR, 0.15 + 0.5 * k2), 1.0 + 2.0 * k2)
 		return
 	var eye := 3.0
 	match state:
 		State.AIM:
-			var k := clampf(time / maxf(aim_time, 0.01), 0.0, 1.0)
+			var k := clampf(time / maxf(_aim_time(), 0.01), 0.0, 1.0)
 			eye = lerpf(3.0, 6.0, k)
 			# 红线：从身子边缘指向小星，越长越亮，最后一刻最亮
 			var from := aim_dir * (radius + 2.0)

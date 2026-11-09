@@ -47,6 +47,9 @@ var _leader: Npc
 var _lit_frame := -10
 var _t := 0.0
 var _dream_t := 0.0
+## 下一声哭还要等多久；每个人的嗓音高低不一样。
+var _cry_left := 0.0
+var _voice := 1.0
 var _aura: Node2D
 var _lamp: PointLight2D
 ## 有美术图时用它，没有就是 null（走 _draw 里的几何小人）。
@@ -60,6 +63,8 @@ func _ready() -> void:
 	save_id = Save.id_of(self)
 	_load_art()
 	_t = randf() * WAVE_PERIOD
+	_cry_left = randf_range(0.5, WAVE_PERIOD * 2.0)
+	_voice = randf_range(0.9, 1.12)
 	_aura = Node2D.new()
 	_aura.material = Lighting.unshaded()
 	_aura.draw.connect(_draw_aura)
@@ -117,12 +122,21 @@ func _physics_process(delta: float) -> void:
 	_t += delta
 	_dream_t += delta
 	_aura.queue_redraw()
+	if state == State.CRYING and is_heard():
+		# 哭声：每两圈声波哭一声，带位置——黑暗里听声音也能找到人。
+		_cry_left -= delta
+		if _cry_left <= 0.0:
+			_cry_left = WAVE_PERIOD * 2.0 + randf_range(-0.3, 0.3)
+			Audio.play_at(&"cry", global_position, _voice)
 	if state == State.RESCUED or _leader != null:
 		return
 	var lit := is_lit() and (_partner == null or _partner.is_lit())
 	if state == State.CRYING and lit:
 		_set_state(State.WAKING)
 	if state == State.WAKING:
+		# 照醒的微光音：音高跟着进度往上走，照不到时变小声（进度在回落）。
+		var p := clampf(progress / need(), 0.0, 1.0)
+		Audio.hold(StringName("wake:" + save_id), &"wake", 0.85 if lit else 0.3, 1.0 + 0.5 * p, global_position)
 		progress += delta if lit else -delta * Game.tuning.progress_decay
 		if progress <= 0.0:
 			_set_state(State.CRYING)

@@ -29,7 +29,8 @@ func open() -> void:
 			var data := walls.get_cell_tile_data(Vector2i(x, y))
 			if data != null and not data.get_custom_data("unbreakable"):
 				walls.erase_cell(Vector2i(x, y))
-	walls.update_internals()
+	# 隧道是在帮助点的 body_entered（物理回调）里打开的，那时不能立刻重建碰撞，推到这一帧末尾。
+	walls.update_internals.call_deferred()
 	opened = true
 	material = Lighting.unshaded()
 	queue_redraw()

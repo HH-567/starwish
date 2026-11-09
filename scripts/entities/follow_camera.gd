@@ -21,6 +21,29 @@ const SHAKE_BY_HIT := {
 	&"kill": 0.62,
 }
 const SHAKE_PX := 22.0
+## 定帧（hit-stop）：撞上去的一瞬间整个世界停这么久（真实时间，秒），撞得越"实"停得越久。
+## 反弹不停：走廊里连着弹几下时每下都停会一卡一卡的。
+const HITSTOP_BY_HIT := {
+	&"hurt": 0.07,
+	&"break": 0.06,
+	&"smash": 0.045,
+	&"stop": 0.035,
+	&"shield": 0.08,
+	&"kill": 0.04,
+}
+## 定帧期间的时间倍率（不是 0：0 的话 delta 也是 0，有些逻辑会除以它）。
+const HITSTOP_SCALE := 0.03
+## 两次定帧至少隔多久（真实时间）：终章一路撞碎墙时不会卡成幻灯片。
+const HITSTOP_GAP := 0.25
+## 定向顿挫：镜头朝撞击方向（墙的反法线）猛推一下再弹回，比随机抖动更有"撞上了"的方向感。
+const KICK_BY_HIT := {
+	&"bump": 3.0,
+	&"bounce": 7.0,
+	&"hurt": 12.0,
+	&"stop": 9.0,
+	&"break": 11.0,
+	&"smash": 9.0,
+}
 ## 帮助特写：拉近到多少、定格多久（真实时间，秒）、慢放到多少。
 const SPOT_ZOOM := 1.7
 const SPOT_TIME := 1.15
@@ -53,6 +76,11 @@ var _sweep_to := Vector2.ZERO
 var _sweep_total := 0.0
 var _sweep_left := 0.0
 var _sweep_zoom := SWEEP_ZOOM
+## 定帧还剩多久、上一次定帧结束到现在多久（都是真实时间）。
+var _stop_left := 0.0
+var _since_stop := 99.0
+## 定向顿挫的当前位移，指数回到 0。
+var _kick := Vector2.ZERO
 
 @onready var _player := get_parent() as Player
 
@@ -66,7 +94,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	# delta 被 time_scale 缩放过；特写的时长按真实时间算。
-	var real := delta / maxf(Engine.time_scale, 0.01)
+	var real := delta / maxf(Engine.time_scale, 0.001)
 	if _sweep_left > 0.0:
 		_sweep(real)
 		return
@@ -76,19 +104,44 @@ func _physics_process(delta: float) -> void:
 			_spot(real)
 			return
 		_end_spot()
+	# 定帧按物理帧数计时（每帧 = 1/物理帧率 的真实时间）：不能用 delta ÷ time_scale——
+	# 定帧开始的那一帧，delta 是按旧倍率算的，除以新倍率会算出半秒，定帧当帧就结束了。
+	var tick := 1.0 / Engine.physics_ticks_per_second
+	_since_stop += tick
+	if _stop_left > 0.0:
+		_stop_left -= tick
+		if _stop_left <= 0.0:
+			_end_hitstop()
 	var target := (_player.velocity * LOOKAHEAD_TIME).limit_length(LOOKAHEAD_MAX)
 	_look = _look.lerp(target, 1.0 - exp(-3.0 * delta))
 	position = _look
 	var z: float = ZOOM_BY_STAGE[_player.stage]
 	zoom = zoom.lerp(Vector2(z, z), 1.0 - exp(-2.0 * delta))
-	_trauma = maxf(_trauma - 1.5 * delta, 0.0)
-	offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * SHAKE_PX * _trauma * _trauma
+	# 抖动和顿挫按真实时间衰减：定帧期间镜头也照样在抖，"停住"的只是世界。
+	_trauma = maxf(_trauma - 1.5 * tick, 0.0)
+	_kick = _kick.lerp(Vector2.ZERO, 1.0 - exp(-16.0 * tick))
+	offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * SHAKE_PX * _trauma * _trauma + _kick
+
+func _start_hitstop(time: float) -> void:
+	if time <= 0.0 or _since_stop < HITSTOP_GAP or _spot_left > 0.0 or _sweep_left > 0.0:
+		return
+	if not is_equal_approx(Engine.time_scale, 1.0):
+		return  # 别的慢放（暂停之外的演出）正在进行，不去动它
+	_stop_left = time
+	Engine.time_scale = HITSTOP_SCALE
+
+func _end_hitstop() -> void:
+	_stop_left = 0.0
+	_since_stop = 0.0
+	if is_equal_approx(Engine.time_scale, HITSTOP_SCALE):
+		Engine.time_scale = 1.0
 
 ## 谁帮了忙就把镜头切到谁身上，同时慢放。
 func _on_help_triggered(role: StringName) -> void:
 	var help := _help_point(role)
 	if help == null:
 		return
+	_cancel_hitstop()
 	_spot_help = help
 	_spot_zoom = SPOT_ZOOM
 	_spot_left = SPOT_TIME
@@ -96,6 +149,7 @@ func _on_help_triggered(role: StringName) -> void:
 
 ## 小星死了：就着它倒下的地方拉近、慢放。熄灭（油尽灯枯）轻一点，碎掉重一点。
 func _on_player_dying(_pos: Vector2, cause: int) -> void:
+	_cancel_hitstop()
 	_spot_help = null
 	if cause == Player.Death.EXTINGUISHED:
 		_spot_zoom = DISSOLVE_ZOOM
@@ -139,6 +193,7 @@ func is_sweeping() -> bool:
 func sweep(to_world: Vector2, time := 1.3, zoom_to := SWEEP_ZOOM) -> void:
 	if _sweep_left > 0.0:
 		return
+	_cancel_hitstop()
 	_sweep_from = _player.global_position
 	_sweep_to = to_world
 	_sweep_total = maxf(time, 0.2)
@@ -163,9 +218,25 @@ func _sweep(real: float) -> void:
 		Engine.time_scale = 1.0
 		reset_smoothing()
 
+## 暂停时把定帧收掉：暂停菜单也走 Engine.time_scale，不收的话菜单动画会跟着变慢。
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED:
+		_cancel_hitstop()
+
+## 有更大的演出（特写、铺路）要接管时间：定帧直接让位，时间倍率交给它们去设。
+func _cancel_hitstop() -> void:
+	if _stop_left > 0.0:
+		_stop_left = 0.0
+		_since_stop = 0.0
+		Engine.time_scale = 1.0
+
 ## 镜头被删掉（换场景、死亡重载）时把慢放收回来，别让结局画面一起变慢。
 func _exit_tree() -> void:
 	Engine.time_scale = 1.0
 
 func _on_player_hit(kind: StringName) -> void:
 	_trauma = minf(_trauma + SHAKE_BY_HIT.get(kind, 0.0), 1.0)
+	var kick: float = KICK_BY_HIT.get(kind, 0.0)
+	if kick > 0.0 and _player.last_normal != Vector2.ZERO:
+		_kick = -_player.last_normal * kick
+	_start_hitstop(HITSTOP_BY_HIT.get(kind, 0.0))

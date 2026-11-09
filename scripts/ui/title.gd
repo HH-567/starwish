@@ -20,6 +20,7 @@ var _dawn := 0.0
 func _ready() -> void:
 	Game.enter_title()
 	Audio.play_bgm(&"title")
+	Audio.set_ducked(false)
 	_lit = Save.endings.get("hidden", false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	for i in 90:

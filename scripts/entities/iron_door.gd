@@ -86,7 +86,7 @@ func open() -> void:
 	collision_layer = 0
 	_open_left = OPEN_TIME
 	Debris.spawn(get_parent(), global_position, EDGE, 16, 220.0, 5.0, true)
-	Audio.play(&"break", 0.75)
+	Audio.play_at(&"door", global_position)
 
 func _on_npc_rescued(id: String) -> void:
 	# 锁匠被救只代表"这扇门有人管了"；实际打开还是等小星走到附近（门匠只在近处开门）

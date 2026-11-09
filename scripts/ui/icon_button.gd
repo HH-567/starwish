@@ -26,6 +26,7 @@ static func make(k: Kind, tooltip := "") -> IconButton:
 	b.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
 	b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	b.mouse_entered.connect(b.grab_focus)
+	b.pressed.connect(func() -> void: Audio.play(&"ui"))
 	return b
 
 func _draw() -> void:

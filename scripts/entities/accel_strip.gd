@@ -79,7 +79,8 @@ func _process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	var player := body as Player
 	if player != null:
-		player.boost(Vector2.RIGHT.rotated(global_rotation), target_speed)
+		if player.boost(Vector2.RIGHT.rotated(global_rotation), target_speed):
+			Audio.play(&"accel")
 
 func _draw() -> void:
 	var half := size * 0.5

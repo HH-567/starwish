@@ -54,10 +54,20 @@ var push := Vector2.ZERO
 var charged := false
 var charge_left := 0.0
 
+## 刚切换光的模式：1 → 0 衰减，StarLight 用它画一圈闪光。
+var mode_flash := 0.0
+## 最近一次正面撞上东西时的墙面法线（镜头往反方向顿一下、星体沿它压扁）。
+var last_normal := Vector2.ZERO
+
 var _state_time := 0.0
-## 有美术图时的星体精灵（受伤闪白用第二张）。
+## 有美术图时的星体精灵（受伤闪白用第二张），都挂在 _body 下面：_body 负责压扁/拉长，精灵自己负责自转。
+var _body: Node2D
 var _art: Sprite2D
 var _art_hurt: Sprite2D
+## 挤压弹簧：>0 沿 _squash_dir 压扁，<0 拉长。撞墙时给一个初值，之后像弹簧一样回弹到 0。
+var _squash := 0.0
+var _squash_v := 0.0
+var _squash_dir := Vector2.RIGHT
 var _spin := 0.0
 var _trail_points: Array[Vector2] = []
 var _warp_to := Vector2.ZERO
@@ -104,6 +114,8 @@ func _physics_process(delta: float) -> void:
 				set_physics_process(false)
 				Game.player_died.emit(death_cause)
 	_spin += delta * (1.0 + velocity.length() / 160.0)
+	mode_flash = maxf(mode_flash - delta * 4.0, 0.0)
+	_step_squash(delta)
 	_update_visuals()
 
 ## 小星星调用：回亮度，不超过上限。医生的帮助是回满。
@@ -131,6 +143,10 @@ func blast(amount: float) -> void:
 	light -= amount
 	hurt_left = Game.tuning.hurt_iframes
 	Game.light_changed.emit(light, light_max)
+	# 不是撞墙：没有墙面法线，镜头不做定向顿挫，星体整体缩一下。
+	last_normal = Vector2.ZERO
+	_squash_dir = Vector2.RIGHT.rotated(randf() * TAU)
+	_squash = maxf(_squash, 0.3)
 	_hit(&"hurt")
 
 ## 科学家的虫洞调用：charge_time 秒内一路冲回去。噬光者碰到它时不管碎没碎都会用掉。
@@ -164,12 +180,11 @@ func _arrive() -> void:
 
 ## 左键/空格切散射，右键/Shift 切聚光；触屏点"光"按钮来回切。键鼠时瞄准跟着鼠标。
 func _read_light_input() -> void:
-	if Controls.take_mode_toggle():
-		light_mode = LightMode.FOCUS if light_mode == LightMode.SCATTER else LightMode.SCATTER
-	elif Input.is_action_just_pressed("light_scatter"):
-		light_mode = LightMode.SCATTER
-	elif Input.is_action_just_pressed("light_focus"):
-		light_mode = LightMode.FOCUS
+	var before := light_mode
+	_read_mode()
+	if light_mode != before:
+		Audio.play(&"focus" if light_mode == LightMode.FOCUS else &"scatter")
+		mode_flash = 1.0
 	if Controls.touch:
 		# 触屏：右摇杆瞄准；没推就朝移动方向。
 		if Controls.aim.length() > TOUCH_AIM_DEADZONE:
@@ -180,6 +195,14 @@ func _read_light_input() -> void:
 		var to_mouse := get_global_mouse_position() - global_position
 		if to_mouse.length() > AIM_DEADZONE:
 			aim = to_mouse.normalized()
+
+func _read_mode() -> void:
+	if Controls.take_mode_toggle():
+		light_mode = LightMode.FOCUS if light_mode == LightMode.SCATTER else LightMode.SCATTER
+	elif Input.is_action_just_pressed("light_scatter"):
+		light_mode = LightMode.SCATTER
+	elif Input.is_action_just_pressed("light_focus"):
+		light_mode = LightMode.FOCUS
 
 ## 救人：上限提高并回满。
 func _on_npc_rescued(_id: String) -> void:
@@ -228,15 +251,18 @@ func stage_for(speed: float, current: int) -> int:
 	return s
 
 ## 加速带调用：沿 dir 的速度提到至少 target，可以超过 WASD 上限，但不超过 max_speed。
-func boost(dir: Vector2, target: float) -> void:
+## 真的被推快了返回 true（加速带拿它决定响不响）。
+func boost(dir: Vector2, target: float) -> bool:
 	if state != State.ACTIVE:
-		return
+		return false
 	var along := velocity.dot(dir)
 	if along < 0.0:
-		return
-	if along < target:
+		return false
+	var pushed := along < target
+	if pushed:
 		velocity += dir * (target - along)
 	velocity = velocity.limit_length(Game.tuning.max_speed)
+	return pushed
 
 func _move(delta: float) -> void:
 	var motion := velocity * delta
@@ -260,34 +286,59 @@ func _resolve_hit(col: KinematicCollision2D) -> Vector2:
 		return rest.slide(n)
 	var layer := PhysicsServer2D.body_get_collision_layer(col.get_collider_rid())
 	var s := stage_for(speed, stage)
+	last_normal = n
 	if s == 5 and not _is_unbreakable(col):
 		var loss := t.break_speed_loss if layer & Layers.CRACKED else t.smash_speed_loss
 		_smash(col)
 		velocity *= 1.0 - loss
+		_impact(0.22, col, 0)
 		_hit(&"smash")
 		return rest * (1.0 - loss)
 	if layer & Layers.PAD:
 		velocity = Vector2.ZERO
+		_impact(0.5, col, 0)
 		_hit(&"stop")
 		return Vector2.ZERO
 	if s == 4 and layer & Layers.CRACKED:
 		_smash(col)
 		velocity *= 1.0 - t.break_speed_loss
+		_impact(0.22, col, 0)
 		_hit(&"break")
 		return rest * (1.0 - t.break_speed_loss)
 	if s >= 3 or (s == 2 and grace_left > 0.0):
 		velocity = velocity.bounce(n) * t.bounce_restitution
 		grace_left = t.bounce_grace
+		# 弹墙：沿法线压扁 + 一小撮这一档颜色的火花从墙面溅出来。
+		_impact(clampf(vn / 1400.0, 0.12, 0.38), col, 8)
 		_hit(&"bounce")
 		return rest.bounce(n) * t.bounce_restitution
 	if s == 2 and hurt_left <= 0.0:
+		_impact(0.45, col, 0)
 		_hurt(n)
 		return Vector2.ZERO
 	# 阶段 1，以及无敌期内的阶段 2：贴墙滑行并减速。
 	velocity = velocity.slide(n) * (1.0 - t.s1_wall_loss)
 	if vn > BUMP_MIN:
+		_impact(0.12, col, 0)
 		_hit(&"bump")
 	return rest.slide(n) * (1.0 - t.s1_wall_loss)
+
+## 撞墙的画面反馈（不影响玩法）：星体沿法线压扁 amount，sparks 个火花从碰撞点沿法线溅出。
+func _impact(amount: float, col: KinematicCollision2D, sparks: int) -> void:
+	_squash_dir = col.get_normal()
+	_squash = maxf(_squash, amount)
+	_squash_v = 0.0
+	if sparks > 0:
+		Debris.spawn(get_parent(), col.get_position(), Game.tuning.stage_color(stage), sparks, 260.0, 4.0, true, col.get_normal(), 0.9)
+
+## 挤压弹簧：约 5 Hz、阻尼偏大，撞一下"噗"地压扁，弹回来带一点点过冲。
+## 没在挤压时按速度沿运动方向稍微拉长（越快越长），看得出在飞。
+func _step_squash(delta: float) -> void:
+	_squash_v += (-900.0 * _squash - 21.0 * _squash_v) * delta
+	_squash += _squash_v * delta
+	if absf(_squash) < 0.002 and absf(_squash_v) < 0.05:
+		_squash = 0.0
+		_squash_v = 0.0
 
 ## 撞到的那一格：从碰撞点沿法线往墙里进 1 像素。
 ## 不用 get_coords_for_body_rid()：4.5 起图块碰撞按 physics_quadrant_size 合并，它返回的是分块坐标。
@@ -403,20 +454,26 @@ func _setup_visuals() -> void:
 	mat.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
 	_glow.material = mat
 	_glow.scale = Vector2.ONE * CORONA / (GLOW_TEX * 0.5)
-	# 星体美术图：本体 + 受伤闪白两张，叠在光晕上面。
+	# 星体美术图：本体 + 受伤闪白两张，叠在光晕上面。都挂在 _body 下，_body 管挤压拉伸。
+	_body = Node2D.new()
+	_body.use_parent_material = true
+	add_child(_body)
 	if ResourceLoader.exists(ART_BODY):
 		var body := load(ART_BODY) as Texture2D
 		if body != null:
 			_art = Sprite2D.new()
 			_art.texture = body
-			add_child(_art)
+			_art.use_parent_material = true
+			_body.add_child(_art)
 	if ResourceLoader.exists(ART_HURT):
 		var hurt := load(ART_HURT) as Texture2D
 		if hurt != null:
 			_art_hurt = Sprite2D.new()
 			_art_hurt.texture = hurt
 			_art_hurt.visible = false
-			add_child(_art_hurt)
+			_art_hurt.use_parent_material = true
+			_body.add_child(_art_hurt)
+	add_child(PlayerSounds.new())
 
 ## 星体精灵跟着状态走：淡入淡出、自转、受伤时闪白、阶段 2 闪红预警。
 func _sync_art(a: float) -> void:
@@ -428,11 +485,22 @@ func _sync_art(a: float) -> void:
 	var tint := WARN_COLOR.lerp(Color.WHITE, 0.35) if warn else Color.WHITE
 	_art.visible = a > 0.0
 	_art.modulate = Color(tint.r, tint.g, tint.b, a * (0.35 if flash else 1.0))
-	_art.rotation = _spin
+	# 挤压/拉伸：_body 转到挤压方向上缩放，精灵再转回去自转，星芒不会跟着被拉歪着转。
+	var dir := _squash_dir
+	var k := _squash
+	if absf(_squash) < 0.01 and state == State.ACTIVE:
+		var speed := velocity.length()
+		if speed > 1.0:
+			dir = velocity / speed
+			k = -0.2 * clampf((speed - 300.0) / 600.0, 0.0, 1.0)
+	k = clampf(k, -0.35, 0.5)
+	_body.rotation = dir.angle()
+	_body.scale = Vector2(1.0 - k, 1.0 / maxf(1.0 - k, 0.2))
+	_art.rotation = _spin - _body.rotation
 	if _art_hurt != null:
 		_art_hurt.visible = a > 0.0 and flash
 		_art_hurt.modulate.a = a
-		_art_hurt.rotation = _spin
+		_art_hurt.rotation = _spin - _body.rotation
 
 func _update_visuals() -> void:
 	# 拖尾记录全局坐标，每帧换算成本地坐标交给 Line2D。

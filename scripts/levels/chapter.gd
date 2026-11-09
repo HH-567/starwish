@@ -62,6 +62,8 @@ func _ready() -> void:
 	cam.reset_smoothing()
 	# 每章一段 BGM：文件没交付就静默跳过（Audio.play_bgm 自己判断）。
 	Audio.play_bgm(chapter_id)
+	# 死亡时压低的音乐，重新出生时抬回来。
+	Audio.set_ducked(false)
 	_apply_difficulty()
 
 ## 给一个区上色：墙砖和实体都乘上这个色调（实体里发光的会跟着偏，正好表达冷/暖）。

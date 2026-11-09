@@ -132,3 +132,15 @@ func _draw() -> void:
 	if _player.light < _player.light_max * t.low_light_ratio:
 		c = Color(Player.WARN_COLOR, (0.35 + 0.25 * sin(Time.get_ticks_msec() * 0.012)) * a)
 	draw_arc(Vector2.ZERO, t.scatter_radius(_player.light), 0.0, TAU, 96, c, 1.5, true)
+	# 刚切换模式：散射是一圈往外推的光环，聚光是沿锥形两条边"收"进去的两道光。
+	var f := _player.mode_flash
+	if f > 0.0:
+		var r := t.scatter_radius(_player.light)
+		if focus:
+			var half := deg_to_rad(t.focus_half_angle)
+			var reach := r * t.focus_range_mult
+			for s in [-1.0, 1.0]:
+				var dir := _player.aim.rotated(s * half * (1.0 + 2.0 * f))
+				draw_line(dir * 14.0, dir * reach * (1.0 - 0.4 * f), Color(Player.STAR_COLOR, 0.55 * f * a), 2.0, true)
+		else:
+			draw_arc(Vector2.ZERO, r * (1.0 - 0.35 * f), 0.0, TAU, 64, Color(Player.STAR_COLOR, 0.6 * f * a), 1.0 + 3.0 * f, true)

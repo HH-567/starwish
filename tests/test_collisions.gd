@@ -82,6 +82,13 @@ func _wall_cases() -> bool:
 	hit = await _launch(wall, 300.0)
 	_check("阶段 2 撞墙：扣亮度并弹开", _kind(hit) == &"hurt" and is_equal_approx(hit[2], 60.0 - Game.tuning.s2_damage) and hit[1].x < 0.0 and is_equal_approx(hit[1].length(), Game.tuning.s2_exit_speed), _fmt(hit))
 	_check("阶段 2 撞墙后进入无敌", _player.hurt_left > 0.0)
+	# 打击感（只是画面，不影响上面的结果）：定帧、镜头朝墙顿一下、星体沿法线压扁，定帧很快放开。
+	var cam := _player.get_node(^"Camera")
+	_check("阶段 2 撞墙：定帧", is_equal_approx(Engine.time_scale, cam.HITSTOP_SCALE), "time_scale=%.2f" % Engine.time_scale)
+	_check("阶段 2 撞墙：镜头朝墙的方向顿一下", cam._kick.x > 5.0, "%s" % cam._kick)
+	_check("阶段 2 撞墙：星体沿墙面法线压扁", _player._squash > 0.3 and _player._squash_dir.x < -0.9, "%.2f %s" % [_player._squash, _player._squash_dir])
+	await _frames(8)
+	_check("定帧 8 帧内放开", is_equal_approx(Engine.time_scale, 1.0), "time_scale=%.2f" % Engine.time_scale)
 	await _cleanup(wall)
 
 	wall = _tile_column(0)
@@ -97,6 +104,8 @@ func _wall_cases() -> bool:
 	wall = _tile_column(0)
 	hit = await _launch(wall, 520.0)
 	_check("阶段 3 撞墙：反弹，不扣亮度", _kind(hit) == &"bounce" and hit[1].x < -360.0 and hit[2] == 60.0, _fmt(hit))
+	_check("反弹不定帧（连着弹墙不能一卡一卡的）", is_equal_approx(Engine.time_scale, 1.0))
+	_check("反弹：墙面溅出火花", find_children("*", "Debris", false, false).size() > 0)
 	await _cleanup(wall)
 
 	wall = _tile_column(0)

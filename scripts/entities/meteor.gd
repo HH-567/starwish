@@ -33,6 +33,8 @@ func _physics_process(delta: float) -> void:
 		State.COOLDOWN:
 			if time >= interval:
 				_set_state(State.WARNING)
+				# 预警声按预警时长变调：哨音落到底的那一刻正好砸下来。
+				Audio.play_at(&"meteor_warn", global_position, WARN_SOUND_TIME / maxf(warn_time, 0.1))
 		State.WARNING:
 			if time >= warn_time:
 				_set_state(State.IMPACT)
@@ -43,8 +45,12 @@ func _physics_process(delta: float) -> void:
 				_set_state(State.COOLDOWN)
 	queue_redraw()
 
+## meteor_warn.wav 本身的长度（从开始到落地那一下）。
+const WARN_SOUND_TIME := 1.1
+
 func _impact() -> void:
 	Debris.spawn(get_parent(), global_position, IMPACT_COLOR, 18, 300.0, 6.0, true)
+	Audio.play_at(&"meteor", global_position)
 	Game.player_hit.emit(&"meteor")
 	var player := get_tree().get_first_node_in_group(&"player") as Player
 	if player == null or player.state != Player.State.ACTIVE:

@@ -37,6 +37,7 @@ func _ready() -> void:
 	if Game.flow == Game.Flow.PLAYING:
 		# 直接运行这个场景（F6、测试）时没经过 Game 加载。
 		Game.flow = Game.Flow.CHASE
+	Audio.set_ducked(false)
 	var floors := _stitch()
 	Lighting.add_darkness(self, floors)
 	_spawn()

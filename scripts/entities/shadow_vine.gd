@@ -85,6 +85,9 @@ func _physics_process(delta: float) -> void:
 	if state == State.INTACT and lit:
 		state = State.BURNING
 	if state == State.BURNING:
+		# 正在烧：噼啪声，越烧越响；照不到时（在回落）小声。
+		var k := clampf(burn / Game.tuning.vine_burn_time, 0.0, 1.0)
+		Audio.hold(StringName("burn:" + save_id), &"crackle", (0.35 + 0.65 * k) * (1.0 if lit else 0.4), 0.9 + 0.3 * k, global_position)
 		burn += delta if lit else -delta * Game.tuning.progress_decay
 		if burn <= 0.0:
 			burn = 0.0

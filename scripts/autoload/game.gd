@@ -200,11 +200,13 @@ func toggle_pause() -> void:
 		flow = _flow_before_pause
 		get_tree().paused = false
 		_pause_menu.visible = false
+		Audio.set_ducked(false)
 	elif flow == Flow.PLAYING or flow == Flow.CHASE:
 		_flow_before_pause = flow
 		flow = Flow.PAUSED
 		get_tree().paused = true
 		_pause_menu.visible = true
+		Audio.set_ducked(true)
 		_pause_menu.call(&"focus_first")
 
 func to_title() -> void:
