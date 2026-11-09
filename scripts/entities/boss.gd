@@ -31,6 +31,8 @@ var _emerge_time := EMERGE_TIME
 var _slow_left := 0.0
 var _touching := false
 var _t := 0.0
+## 冲刺残影的计时。
+var _fx_dash_t := 0.0
 var _aura: Node2D
 ## 美术图：有就用 128×128 的像素暗块，没有就画原来的几何黑影。
 var _art: Sprite2D
@@ -63,6 +65,7 @@ func emerge(player: Player, at: Vector2, time := EMERGE_TIME) -> void:
 	_passed.clear()
 	_slow_left = 0.0
 	_touching = false
+	BossFx.emerge(get_parent(), global_position, RADIUS)
 	_emerge_time = time
 	visible = true
 	_set_state(State.EMERGE)
@@ -74,10 +77,13 @@ func retreat() -> void:
 
 ## 钟表匠：time 秒内速度乘 help_slow_mult。
 func slow(time: float) -> void:
+	BossFx.slow(get_parent(), global_position)
 	_slow_left = maxf(_slow_left, time)
 
 ## 乐手、守夜人的盾：沿走过的路往回退 distance。
 func knockback(distance: float) -> void:
+	if state == State.CHASE:
+		BossFx.knock(get_parent(), global_position, global_position - Vector2(distance, 0.0))
 	if state != State.CHASE:
 		return
 	while distance > 0.0:
@@ -108,6 +114,14 @@ func gap() -> float:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	if state == State.CHASE:
+		_fx_dash_t -= delta
+		if _fx_dash_t <= 0.0:
+			_fx_dash_t = 0.12
+			var aim := Vector2.LEFT
+			if _player != null:
+				aim = (_player.global_position - global_position).normalized()
+			BossFx.dash(get_parent(), global_position - aim * RADIUS, global_position - aim * (RADIUS + 90.0))
 	_state_t += delta
 	if _art != null:
 		# 图跟着状态放大淡入；碎了就别画了，交给碎片。

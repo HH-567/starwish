@@ -66,7 +66,11 @@ func _walk() -> bool:
 func _after_locksmith() -> bool:
 	Save.rescued["ch3/Level/Entities/Npc2"] = &"locksmith"
 	await _load()
-	_check("锁匠已救：重进这一章已经没有铁门", _doors() == 0, "%d" % _doors())
+	# 锁匠救过：门还在，但小星走近会自己打开（有 0.3 秒收门动画）
+	_check("锁匠已救：门还在", _doors() == 1, "%d" % _doors())
+	_put(Vector2i(60, 20), Player.LightMode.SCATTER)
+	await _frames(40)
+	_check("走近之后门打开", _doors() == 0, "%d" % _doors())
 	_put(Vector2i(63, 20), Player.LightMode.SCATTER, Vector2.UP)
 	Input.action_press("move_right")
 	await _frames(40)

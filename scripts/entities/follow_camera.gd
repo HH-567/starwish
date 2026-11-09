@@ -11,8 +11,8 @@ const SHAKE_BY_HIT := {
 	&"bump": 0.12,
 	&"hurt": 0.6,
 	&"bounce": 0.3,
-	&"break": 0.78,
-	&"smash": 0.72,
+	&"break": 0.95,
+	&"smash": 0.9,
 	&"stop": 0.35,
 	&"shatter": 0.9,
 	&"shield": 0.4,
@@ -20,7 +20,7 @@ const SHAKE_BY_HIT := {
 	# 打碎敌人：比撞墙重、比死亡轻
 	&"kill": 0.62,
 }
-const SHAKE_PX := 18.0
+const SHAKE_PX := 22.0
 ## 帮助特写：拉近到多少、定格多久（真实时间，秒）、慢放到多少。
 const SPOT_ZOOM := 1.7
 const SPOT_TIME := 1.15

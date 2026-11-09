@@ -178,10 +178,16 @@ func _cases() -> bool:
 	await _frames(10)
 	_check("锁匠没救：铁门关着", is_instance_valid(door) and door.state == IronDoor.State.CLOSED)
 	await _frames(125)
-	_check("锁匠被救：铁门当场打开", not is_instance_valid(door))
+	_check("锁匠被救：门还是关着（要走近才开）", is_instance_valid(door) and door.state == IronDoor.State.CLOSED)
+	_player.global_position = door.global_position + Vector2(-90, 0)
+	await _frames(40)
+	_check("走近之后门打开", not is_instance_valid(door))
 	var later := _add(IRON_DOOR_SCENE.instantiate(), Vector2(0, 300))
 	await _frames(2)
-	_check("锁匠已救：之后加载的铁门直接不出现", not is_instance_valid(later))
+	_check("锁匠已救：新加载的门存在，等小星靠近", is_instance_valid(later))
+	_player.global_position = Vector2(0, 300) + Vector2(-90, 0)
+	await _frames(40)
+	_check("新门也被打开", not is_instance_valid(later))
 
 	# 栅栏：挡人不挡光。
 	await _begin()

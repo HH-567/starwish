@@ -106,7 +106,7 @@ func _walk() -> bool:
 	await _frames(130)
 	_check("隔着栅栏救出锁匠", _saved(&"locksmith"))
 	await _frames(2)
-	_check("锁匠被救：本关的铁门都打开了", _doors() == 0, "%d" % _doors())
+	_check("锁匠被救：门还在，等小星走近才开", _doors() == 2, "%d" % _doors())
 
 	_put(Vector2i(59, 26), Player.LightMode.SCATTER)
 	await _frames(130)

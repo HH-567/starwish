@@ -82,7 +82,8 @@ func _walk() -> bool:
 	await _frames(140)
 	_check("隔着栅栏照亮锁匠", _saved(&"locksmith"))
 	await _frames(4)
-	_check("锁匠被救：铁门打开", _doors() == 0, "%d" % _doors())
+	_check("锁匠被救：门还在，走近才开", _doors() == 1, "%d" % _doors())
+	# 走近开门的验证放在 test_light / test_ch4 里做（这里只确认门还在）
 
 	# 回头：邮差，以及他远程点亮 ch1 的医生。
 	_put(Vector2i(5, 20))
