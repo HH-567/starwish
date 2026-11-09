@@ -129,15 +129,11 @@ class Runner extends Node:
 		var cam := p.get_node(^"Camera") as Camera2D
 		_check("拿到帮助：慢放", Engine.time_scale < 0.9, "time_scale=%.2f" % Engine.time_scale)
 		await _frames(10)
-		# 特写要把"帮忙的小人 + 被影响的噬光者"同时框进画面
+		# 守夜人的帮忙只作用在小星身上 → 特写看小人（玩家要看清"谁给的盾"）
 		var half := get_viewport().get_visible_rect().size / cam.zoom * 0.5
-		var the_boss := finale.boss
 		var sees_help := absf(cam.global_position.y - watchman.global_position.y) < half.y
-		var sees_boss := the_boss == null or absf(cam.global_position.y - the_boss.global_position.y) < half.y
-		_check("特写里帮助者和噬光者都在画面内", sees_help and sees_boss,
-				"半高 %.0f / 帮助者差 %.0f / 噬光者差 %.0f" % [
-					half.y, absf(cam.global_position.y - watchman.global_position.y),
-					absf(cam.global_position.y - the_boss.global_position.y) if the_boss != null else 0.0])
+		_check("特写对着帮忙的小人", sees_help, "半高 %.0f / 差 %.0f" % [
+			half.y, absf(cam.global_position.y - watchman.global_position.y)])
 		await _frames(90)
 		_check("特写结束：时间恢复、镜头回到小星", is_equal_approx(Engine.time_scale, 1.0) and cam.global_position.distance_to(p.global_position) < 300.0, "time_scale=%.2f" % Engine.time_scale)
 		_check("跑过两段的 Entry：检查点记成后一段的", Save.checkpoint == "test_light/ChaseLane/Entry" and _checkpoints == ["test_feel/ChaseLane/Entry", "test_light/ChaseLane/Entry"], "%s" % [_checkpoints])
