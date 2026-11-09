@@ -69,18 +69,73 @@ func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), BG)
 	for s in _stars:
 		draw_circle(Vector2(s.x, s.y) * size, 1.3, Color(1, 1, 1, 0.2 + 0.2 * sin(_t * 1.3 + s.z)))
-	# 小星一边向上飞、一边拖出一条渐隐的尾迹（标题这里不写字）
-	var base := Vector2(size.x * 0.5, size.y * 0.30)
-	var rise := fmod(_t * 44.0, 150.0)
-	var head_at := base + Vector2(sin(_t * 0.9) * 9.0, -rise + 75.0)
-	for i in 14:
-		var k := float(i) / 13.0
-		var tail := head_at + Vector2(sin(_t * 0.9 - k * 1.7) * 9.0 * k, k * 150.0)
-		var a := (1.0 - k) * (1.0 - k) * 0.6
-		_draw_star(tail, lerpf(10.0, 2.0, k), Color(STAR, a), _t * 0.5 - k * 0.6)
+	_draw_scene()
+	_draw_star_flight()
+
+## 背景"游戏内容"：地砖、几盏路、站着的小人、几颗掉在地上的星屑、远处的噬光者。
+## 全是剪影，不抢小星的气场。
+func _draw_scene() -> void:
+	var w := size.x
+	var h := size.y
+	# 底部两层地砖（和游戏里的墙砖一个色系，只留最暗的一档）
+	var floor_y := h * 0.82
+	draw_rect(Rect2(0.0, floor_y, w, h - floor_y), Color(0.045, 0.05, 0.09))
+	for row in 2:
+		var y := floor_y + row * 26.0
+		var offset := 0.0 if row == 0 else 34.0
+		for x in range(-1, int(w / 68.0) + 2):
+			var bx := x * 68.0 + offset
+			draw_rect(Rect2(bx, y, 62.0, 22.0), Color(0.07, 0.065, 0.10))
+	# 远处噬光者：一大团暗影 + 一圈紫边（很淡）
+	var boss := Vector2(w * 0.80, h * 0.30)
+	for k in 5:
+		draw_circle(boss, 90.0 - k * 12.0, Color(0.03, 0.02, 0.06, 0.55))
+	draw_arc(boss, 90.0, 0.0, TAU, 48, Color(0.35, 0.16, 0.46, 0.35), 2.0, true)
+	for side: float in [-1.0, 1.0]:
+		draw_circle(boss + Vector2(26.0, side * 12.0), 4.0, Color(1.0, 0.35, 0.48, 0.55))
+	# 三盏路灯：灯柱 + 一点暖光
+	for i in 3:
+		var lamp_pos := Vector2(w * (0.12 + 0.13 * i), floor_y - 46.0)
+		draw_rect(Rect2(lamp_pos + Vector2(-2.0, 0.0), Vector2(4.0, 46.0)), Color(0.10, 0.10, 0.14))
+		draw_circle(lamp_pos, 16.0, Color(1.0, 0.85, 0.55, 0.05 + 0.02 * sin(_t * 2.0 + i)))
+		draw_circle(lamp_pos, 4.5, Color(1.0, 0.88, 0.6, 0.65))
+	# 站着的小人：几组剪影，靠地的、坐着的
+	var spots: Array[Vector2] = [
+		Vector2(w * 0.06, floor_y + 10.0), Vector2(w * 0.13, floor_y + 34.0),
+		Vector2(w * 0.27, floor_y + 22.0), Vector2(w * 0.35, floor_y + 42.0),
+		Vector2(w * 0.68, floor_y + 16.0), Vector2(w * 0.74, floor_y + 40.0),
+	]
+	# 剪影用暗色，不能用地上的亮色，不然会抢小星
+	for i in spots.size():
+		var at: Vector2 = spots[i]
+		var up := i % 2 == 0
+		var body := Color(0.10, 0.12, 0.21)
+		draw_colored_polygon(PackedVector2Array([
+			at + Vector2(-7, 12), at + Vector2(7, 12),
+			at + Vector2(4.5, -4.0 if up else 0.0), at + Vector2(-4.5, -4.0 if up else 0.0)]), body)
+		draw_circle(at + Vector2(0, -13.0 if up else -7.5), 5.5, body)
+	# 地上散落的星屑
+	for i in 5:
+		var shard := Vector2(w * (0.18 + 0.15 * i), floor_y + 6.0 + 9.0 * float(i % 3))
+		_draw_star(shard, 4.5, Color(1.0, 0.91, 0.63, 0.45 + 0.2 * sin(_t * 3.0 + i)))
+
+## 小星：先往上飞，到顶再转弯飞下来，一圈一圈地绕着飞（椭圆的轨道 + 尾迹）
+func _draw_star_flight() -> void:
+	var center := Vector2(size.x * 0.50, size.y * 0.40)
+	var rx := size.x * 0.20
+	var ry := size.y * 0.17
+	var phase := _t * 0.55
+	# 尾迹：沿着同一条椭圆往回采样
+	for i in 16:
+		var k := float(i) / 15.0
+		var a := phase - k * 1.15
+		var tail := center + Vector2(cos(a) * rx, sin(a) * ry)
+		var fade := (1.0 - k) * (1.0 - k)
+		_draw_star(tail, lerpf(9.0, 1.8, k), Color(STAR, 0.55 * fade), a * 0.5)
+	var head := center + Vector2(cos(phase) * rx, sin(phase) * ry)
 	for k in 4:
-		draw_circle(head_at, 46.0 - k * 11.0, Color(STAR, 0.03 + k * 0.022))
-	_draw_star(head_at, 18.0, STAR, _t * 0.5)
+		draw_circle(head, 42.0 - k * 10.0, Color(STAR, 0.03 + k * 0.022))
+	_draw_star(head, 17.0, STAR, _t * 0.5)
 
 ## 画一颗四角星（rot 让它慢慢转）
 func _draw_star(at: Vector2, r: float, c: Color, rot := 0.0) -> void:
