@@ -48,9 +48,6 @@ func _ready() -> void:
 	monitorable = false
 	Shapes.add_rect(self, Vector2(BAND_WIDTH, reach * 2.0))
 	add_child(Lighting.point_light(LAMP, Npc.GLOW, 0.7))
-	for child in get_children():
-		if child is Tunnel:
-			(child as Tunnel).open()
 	body_entered.connect(_on_body_entered)
 
 ## 记下 npc 指向的那个人的 save_id 和职业。
@@ -122,6 +119,11 @@ func _help(player: Player) -> void:
 		"clockmaker":
 			if boss != null:
 				boss.slow(t.help_slow_time)
+		"miner":
+			# 矿工的"帮忙"就是挖开这堵墙：等玩家跑到他跟前才挖，不是一进关就通
+			for child in get_children():
+				if child is Tunnel:
+					(child as Tunnel).open()
 
 func _draw() -> void:
 	Npc.draw_figure(self, true)

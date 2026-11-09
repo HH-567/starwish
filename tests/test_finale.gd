@@ -109,7 +109,7 @@ class Runner extends Node:
 		_check("全救了：帮助点都在，加上结尾的科学家", _help_points(finale).size() == _help_total(), "%d / %d" % [_help_points(finale).size(), _help_total()])
 		var tunnels := finale.find_children("*", "Tunnel", true, false)
 		var tunnel_at := (tunnels[0] as Node2D).global_position if tunnels.size() == 1 else Vector2.INF
-		_check("矿工救了：隧道打开，那里没有墙", tunnels.size() == 1 and not _wall_at(finale, tunnel_at))
+		_check("矿工救了：隧道存在，但还没挖开（等玩家到）", tunnels.size() == 1 and _wall_at(finale, tunnel_at))
 		var worms := finale.find_children("*", "Wormhole", true, false)
 		_check("画家的光门和科学家的掉头虫洞都在", worms.size() == 2 and worms.any(func(w: Wormhole) -> bool: return w.charge and not w.keep_direction))
 		var lamps := finale.find_children("*", "Lamp", true, false)
