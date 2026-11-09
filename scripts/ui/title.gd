@@ -12,10 +12,15 @@ var _t := 0.0
 var _new: Button
 var _continue: Button
 var _confirm := false
+## 真结局（隐藏结局）达成之后，标题才会亮起来、城市才出现、噬光者消失。
+var _lit := false
+## 0 → 1：标题停留期间光线慢慢升起来。
+var _dawn := 0.0
 
 func _ready() -> void:
 	Game.enter_title()
 	Audio.play_bgm(&"title")
+	_lit = Save.endings.get("hidden", false)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	for i in 90:
 		_stars.append(Vector3(randf(), randf(), randf() * TAU))
@@ -39,6 +44,8 @@ func _open_settings() -> void:
 	panel.closed.connect(func() -> void: if _new != null: _new.grab_focus())
 
 func _process(delta: float) -> void:
+	_dawn = minf(_dawn + (delta if _lit else -delta) * 0.35, 1.0)
+	_dawn = maxf(_dawn, 0.0)
 	_t += delta
 	queue_redraw()
 
@@ -102,7 +109,7 @@ func _draw_suburb(x0: float, x1: float, ground: float) -> void:
 		draw_line(Vector2(tx, ground - 58.0), Vector2(tx + 18.0, ground - 80.0), base, 3.0, true)
 
 ## 右边：城市。高低错落的楼 + 点点亮窗 + 天线。
-func _draw_city(x0: float, x1: float, ground: float) -> void:
+func _draw_city(x0: float, x1: float, ground: float, lit := 1.0) -> void:
 	var base := Color(0.065, 0.075, 0.13)
 	var i := 0
 	var x := x0
@@ -121,9 +128,9 @@ func _draw_city(x0: float, x1: float, ground: float) -> void:
 			for cy in rows:
 				if fmod(float(cx * 7 + cy * 3 + i * 5), 4.0) > 1.4:
 					continue
-				var lit := 0.10 + 0.12 * float((cx * 3 + cy * 5 + i) % 3)
+				var win := 0.10 + 0.12 * float((cx * 3 + cy * 5 + i) % 3)
 				draw_rect(Rect2(x + 8.0 + cx * 16.0, top + 12.0 + cy * 20.0, 8.0, 10.0),
-					Color(1.0, 0.86, 0.6, lit))
+					Color(1.0, 0.86, 0.6, win * (0.35 + 1.0 * lit)))
 		x += w + 14.0
 		i += 1
 
@@ -132,7 +139,6 @@ func _draw_city(x0: float, x1: float, ground: float) -> void:
 func _draw_scene() -> void:
 	var w := size.x
 	var h := size.y
-	# 底部两层地砖（和游戏里的墙砖一个色系，只留最暗的一档）
 	var floor_y := h * 0.82
 	draw_rect(Rect2(0.0, floor_y, w, h - floor_y), Color(0.045, 0.05, 0.09))
 	for row in 2:
@@ -141,28 +147,34 @@ func _draw_scene() -> void:
 		for x in range(-1, int(w / 68.0) + 2):
 			var bx := x * 68.0 + offset
 			draw_rect(Rect2(bx, y, 62.0, 22.0), Color(0.07, 0.065, 0.10))
+	# 郊区一直在；城市要等真结局之后才亮起来
 	_draw_suburb(0.0, w * 0.46, floor_y)
-	_draw_city(w * 0.54, w, floor_y)
-	# 远处噬光者：一大团暗影 + 一圈紫边（很淡）
-	var boss := Vector2(w * 0.80, h * 0.30)
-	for k in 5:
-		draw_circle(boss, 90.0 - k * 12.0, Color(0.03, 0.02, 0.06, 0.55))
-	draw_arc(boss, 90.0, 0.0, TAU, 48, Color(0.35, 0.16, 0.46, 0.35), 2.0, true)
-	for side: float in [-1.0, 1.0]:
-		draw_circle(boss + Vector2(26.0, side * 12.0), 4.0, Color(1.0, 0.35, 0.48, 0.55))
-	# 三盏路灯：灯柱 + 一点暖光
+	if _dawn > 0.01:
+		_draw_city(w * 0.54, w, floor_y, _dawn)
+	# 噬光者：没打真结局时压在右上角，打完之后随着天亮消失
+	if _dawn < 0.99:
+		var boss := Vector2(w * 0.80, h * 0.30)
+		var a := 1.0 - _dawn
+		for k in 5:
+			draw_circle(boss, 90.0 - k * 12.0, Color(0.03, 0.02, 0.06, 0.55 * a))
+		draw_arc(boss, 90.0, 0.0, TAU, 48, Color(0.35, 0.16, 0.46, 0.35 * a), 2.0, true)
+		for side: float in [-1.0, 1.0]:
+			draw_circle(boss + Vector2(26.0, side * 12.0), 4.0, Color(1.0, 0.35, 0.48, 0.55 * a))
+	# 路灯：没天亮时是熄的（只有柱子），天亮后灯芯开始亮
 	for i in 3:
 		var lamp_pos := Vector2(w * (0.12 + 0.13 * i), floor_y - 46.0)
 		draw_rect(Rect2(lamp_pos + Vector2(-2.0, 0.0), Vector2(4.0, 46.0)), Color(0.10, 0.10, 0.14))
-		draw_circle(lamp_pos, 16.0, Color(1.0, 0.85, 0.55, 0.05 + 0.02 * sin(_t * 2.0 + i)))
-		draw_circle(lamp_pos, 4.5, Color(1.0, 0.88, 0.6, 0.65))
-	# 站着的小人：几组剪影，靠地的、坐着的
+		if _dawn > 0.02:
+			draw_circle(lamp_pos, 16.0, Color(1.0, 0.85, 0.55, (0.05 + 0.02 * sin(_t * 2.0 + i)) * _dawn))
+			draw_circle(lamp_pos, 4.5, Color(1.0, 0.88, 0.6, 0.6 * _dawn))
+		else:
+			draw_circle(lamp_pos, 4.0, Color(0.12, 0.13, 0.2))
+	# 站着的小人：剪影用暗色
 	var spots: Array[Vector2] = [
 		Vector2(w * 0.06, floor_y + 10.0), Vector2(w * 0.13, floor_y + 34.0),
 		Vector2(w * 0.27, floor_y + 22.0), Vector2(w * 0.35, floor_y + 42.0),
 		Vector2(w * 0.68, floor_y + 16.0), Vector2(w * 0.74, floor_y + 40.0),
 	]
-	# 剪影用暗色，不能用地上的亮色，不然会抢小星
 	for i in spots.size():
 		var at: Vector2 = spots[i]
 		var up := i % 2 == 0
@@ -171,10 +183,11 @@ func _draw_scene() -> void:
 			at + Vector2(-7, 12), at + Vector2(7, 12),
 			at + Vector2(4.5, -4.0 if up else 0.0), at + Vector2(-4.5, -4.0 if up else 0.0)]), body)
 		draw_circle(at + Vector2(0, -13.0 if up else -7.5), 5.5, body)
-	# 地上散落的星屑
+	# 地上的星屑：天亮后更亮一些
 	for i in 5:
 		var shard := Vector2(w * (0.18 + 0.15 * i), floor_y + 6.0 + 9.0 * float(i % 3))
-		_draw_star(shard, 4.5, Color(1.0, 0.91, 0.63, 0.45 + 0.2 * sin(_t * 3.0 + i)))
+		var glow := 0.35 + 0.35 * _dawn
+		_draw_star(shard, 4.5, Color(1.0, 0.91, 0.63, glow + 0.15 * sin(_t * 3.0 + i)))
 
 ## 小星：先往上飞，到顶再转弯飞下来，一圈一圈地绕着飞（椭圆的轨道 + 尾迹）
 func _draw_star_flight() -> void:
