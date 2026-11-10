@@ -24,11 +24,14 @@ func open() -> void:
 	var half := size * 0.5 - Vector2.ONE
 	var a := walls.local_to_map(walls.to_local(global_position - half))
 	var b := walls.local_to_map(walls.to_local(global_position + half))
+	var erased: Array[Vector2i] = []
 	for x in range(a.x, b.x + 1):
 		for y in range(a.y, b.y + 1):
 			var data := walls.get_cell_tile_data(Vector2i(x, y))
 			if data != null and not data.get_custom_data("unbreakable"):
 				walls.erase_cell(Vector2i(x, y))
+				erased.append(Vector2i(x, y))
+	WallTiles.refresh_around(walls, walls.get_parent().get_node_or_null(^"Floor") as TileMapLayer, erased)
 	# 隧道是在帮助点的 body_entered（物理回调）里打开的，那时不能立刻重建碰撞，推到这一帧末尾。
 	walls.update_internals.call_deferred()
 	opened = true

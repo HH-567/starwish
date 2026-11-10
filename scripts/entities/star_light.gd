@@ -26,10 +26,10 @@ var _reflect: PointLight2D
 
 func _ready() -> void:
 	material = Lighting.unshaded()
-	# 散射光不开阴影：开了之后（compat 渲染器 + 32px 图块遮光体）会在星体脚下
-	# 糊出一个 32×32 的亮方块、边上还带一圈红边（试过 PCF5 / PCF13 / NONE 都一样）。
-	# 代价是散射光会稍微漫到墙上；锥形光仍然开阴影，那束窄光必须挡墙，它没有这个问题。
-	_scatter = Lighting.point_light(1.0, COLOR, 1.0, false)
+	# 散射光也开阴影：光被墙挡住，墙后面是暗的（和"隔墙照不到人"的判定一致）。
+	# 墙的遮光体在挨着空地的一边往里缩了几像素（scripts/levels/wall_tiles.gd），所以墙沿会被照亮。
+	# 以前的注释说开阴影会在星体脚下糊出 32×32 的亮方块，2026-11-10 在 4.7.2 上用 shots_tour 把五章都拍了一遍，没再出现。
+	_scatter = Lighting.point_light(1.0, COLOR, 1.0, true)
 	add_child(_scatter)
 	_focus = _cone_light()
 	add_child(_focus)

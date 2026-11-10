@@ -102,9 +102,9 @@ func _report(path: String, e: Error, err: Error) -> Error:
 	print("BUILD %s %s" % [path, "OK" if e == OK else "FAILED %d" % e])
 	return e if e != OK else err
 
+## 图块集每次构建都重新生成（图集由 tools/tile_art.py 画）。图源编号见 scripts/levels/wall_tiles.gd：
+## 风格 s 的墙 = 3s、边界墙 = 3s + 1、地面 = 3s + 2。tests/test_collisions 直接用图源 0、1 的 (0, 0)。
 func _load_or_make_tileset() -> TileSet:
-	if ResourceLoader.exists(TILES_PATH):
-		return load(TILES_PATH)
 	var ts := TileSet.new()
 	ts.tile_size = Vector2i(TILE, TILE)
 	ts.add_physics_layer()
@@ -114,58 +114,43 @@ func _load_or_make_tileset() -> TileSet:
 	ts.add_custom_data_layer()
 	ts.set_custom_data_layer_name(0, "unbreakable")
 	ts.set_custom_data_layer_type(0, TYPE_BOOL)
-	# 普通墙用暗石砖（wall_solid），边界/不可破坏的那档再用亮一点的裂纹砖。
-	_add_block(ts, Color("121a33"), Color("2b3a6b"), false, "res://assets/art/level/wall_solid.png")
-	_add_block(ts, Color("070a14"), Color("1a2142"), true, "res://assets/art/level/wall_solid.png")
-	_add_floor(ts, "res://assets/art/level/floor.png")
+	for style: String in WallTiles.STYLES:
+		_add_wall_atlas(ts, "res://assets/art/level/walls_%s.png" % style, false)
+		_add_wall_atlas(ts, "res://assets/art/level/walls_unbreakable_%s.png" % style, true)
+		_add_floor_atlas(ts, "res://assets/art/level/floors_%s.png" % style)
 	ResourceSaver.save(ts, TILES_PATH, ResourceSaver.FLAG_CHANGE_PATH)
 	return ts
 
-## 加一个单格图块源：方形贴图 + 整格碰撞 + 整格遮光。
-## art 给了就用美术图，没给（或文件不在）就退回程序生成的渐变方块。
-func _add_block(ts: TileSet, inner: Color, edge: Color, unbreakable: bool, art := "") -> void:
-	var tex: Texture2D
-	if art != "" and ResourceLoader.exists(art):
-		tex = load(art) as Texture2D
-	if tex == null:
-		var gradient := Gradient.new()
-		gradient.offsets = PackedFloat32Array([0.0, 0.78, 1.0])
-		gradient.colors = PackedColorArray([inner, inner, edge])
-		var g := GradientTexture2D.new()
-		g.gradient = gradient
-		g.fill = GradientTexture2D.FILL_SQUARE
-		g.fill_from = Vector2(0.5, 0.5)
-		g.fill_to = Vector2(1.0, 0.5)
-		g.width = TILE
-		g.height = TILE
-		tex = g
+## 墙图集：每格整格碰撞；遮光体按列（掩码）在挨着空地的边往里缩，墙沿能被照亮。
+func _add_wall_atlas(ts: TileSet, path: String, unbreakable: bool) -> void:
 	var source := TileSetAtlasSource.new()
-	source.texture = tex
+	source.texture = load(path) as Texture2D
 	source.texture_region_size = Vector2i(TILE, TILE)
 	ts.add_source(source)
-	source.create_tile(Vector2i.ZERO)
-	var data := source.get_tile_data(Vector2i.ZERO, 0)
 	var h := TILE * 0.5
 	var square := PackedVector2Array([Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h)])
-	data.add_collision_polygon(0)
-	data.set_collision_polygon_points(0, 0, square)
-	var occluder := OccluderPolygon2D.new()
-	occluder.polygon = square
-	data.set_occluder(0, occluder)
-	data.set_custom_data("unbreakable", unbreakable)
+	for v in WallTiles.VARIANTS:
+		for m in WallTiles.MASKS:
+			var at := Vector2i(m, v)
+			source.create_tile(at)
+			var data := source.get_tile_data(at, 0)
+			data.add_collision_polygon(0)
+			data.set_collision_polygon_points(0, 0, square)
+			data.set_occluder(0, WallTiles.occluder_for(m, TILE))
+			data.set_custom_data("unbreakable", unbreakable)
 
-## 地面：只贴图，不碰撞、不挡光。
-func _add_floor(ts: TileSet, art: String) -> void:
-	if art == "" or not ResourceLoader.exists(art):
-		return
-	var tex := load(art) as Texture2D
-	if tex == null:
-		return
+## 地面图集：只贴图，不碰撞、不挡光。
+func _add_floor_atlas(ts: TileSet, path: String) -> void:
 	var source := TileSetAtlasSource.new()
-	source.texture = tex
+	source.texture = load(path) as Texture2D
 	source.texture_region_size = Vector2i(TILE, TILE)
 	ts.add_source(source)
-	source.create_tile(Vector2i.ZERO)
+	for v in WallTiles.VARIANTS:
+		for m in WallTiles.MASKS:
+			source.create_tile(Vector2i(m, v))
+
+## 每章用哪种墙和地面：郊区（ch0–ch2）粗石块 + 石板地，城市（ch3、ch4）砖墙 + 方砖路。
+const STYLE_BY_CHAPTER := {&"ch0": 0, &"ch1": 0, &"ch2": 0, &"ch3": 1, &"ch4": 1}
 
 ## 章节场景（docs/level-data-format.md 第 2 节）：Level 是关卡区，ChaseLane 是回程赛道，生成在关卡区下面。
 func _build_chapter(tiles: TileSet, spec: Array) -> Error:
@@ -179,7 +164,8 @@ func _build_chapter(tiles: TileSet, spec: Array) -> Error:
 		root.set("tint", tint[0])
 		root.set("lane_tint", tint[1])
 	var level := _area(root, root, "Level")
-	var rows := _build_area(root, level, tiles, spec[0], Kind.LEVEL, {}, _tier_for(spec[3]))
+	var style: int = STYLE_BY_CHAPTER.get(spec[3], 0)
+	var rows := _build_area(root, level, tiles, spec[0], Kind.LEVEL, {}, _tier_for(spec[3]), style)
 	# 赛道里的帮助点按职业找关卡区里的人。
 	var npcs := {}
 	for node in level.get_node(^"Entities").get_children():
@@ -187,7 +173,7 @@ func _build_chapter(tiles: TileSet, spec: Array) -> Error:
 			npcs[node.role] = node
 	var lane := _area(root, root, "ChaseLane")
 	lane.position = Vector2(0, (rows + AREA_GAP) * TILE)
-	_build_area(root, lane, tiles, spec[5], Kind.LANE, npcs)
+	_build_area(root, lane, tiles, spec[5], Kind.LANE, npcs, 1, style)
 	return _save(root, spec[1])
 
 ## 章节 id → 影鬼的等级（序章最轻，第五章最狠）。测试关没有对应章节，就按 1 算。
@@ -203,11 +189,12 @@ func _build_finale(tiles: TileSet) -> Error:
 	root.name = "Finale"
 	root.set_script(load(FINALE_SCRIPT))
 	var intro := _area(root, root, "Intro")
-	var rows := _build_area(root, intro, tiles, FINALE_INTRO, Kind.INTRO)
+	# 终章从城市（ch4 的赛道）一路跑回郊区（ch0 的赛道）：开头是城市，结尾是郊区。
+	var rows := _build_area(root, intro, tiles, FINALE_INTRO, Kind.INTRO, {}, 1, 1)
 	# 结尾运行时挪到最后一段赛道后面；这里先放在开头下面，编辑器里看得清。
 	var outro := _area(root, root, "Outro")
 	outro.position = Vector2(0, (rows + AREA_GAP) * TILE)
-	_build_area(root, outro, tiles, FINALE_OUTRO, Kind.OUTRO)
+	_build_area(root, outro, tiles, FINALE_OUTRO, Kind.OUTRO, {}, 1, 0)
 	return _save(root, Game.FINALE_SCENE)
 
 func _save(root: Node, path: String) -> Error:
@@ -227,7 +214,12 @@ func _area(root: Node, parent: Node, area_name: String) -> Node2D:
 
 ## 按文本地图在 area 下铺墙（Walls）、摆实体（Entities）、放标记点。npcs 是关卡区里的人（职业 → 节点），
 ## 赛道里的帮助点指向他们。返回地图有几行。
-func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kind: Kind, npcs := {}, tier := 1) -> int:
+func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kind: Kind, npcs := {}, tier := 1, style := 0) -> int:
+	# 地面层垫在墙下面：每个不是墙的格子铺一块，挨着墙的边带接触阴影。
+	var ground := TileMapLayer.new()
+	ground.name = "Floor"
+	ground.tile_set = tiles
+	_add(root, area, ground)
 	var walls := TileMapLayer.new()
 	walls.name = "Walls"
 	walls.tile_set = tiles
@@ -244,9 +236,9 @@ func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kin
 			var ch := rows[y][x]
 			match ch:
 				"@":
-					walls.set_cell(cell, 1, Vector2i.ZERO)
+					walls.set_cell(cell, WallTiles.wall_source(style, true), Vector2i.ZERO)
 				"#":
-					walls.set_cell(cell, 0, Vector2i.ZERO)
+					walls.set_cell(cell, WallTiles.wall_source(style, false), Vector2i.ZERO)
 				".":
 					pass
 				"A", "B", "O", "o":
@@ -254,11 +246,12 @@ func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kin
 				_:
 					if ch == "T":
 						# 隧道先铺成墙，矿工已救时才打开。
-						walls.set_cell(cell, 0, Vector2i.ZERO)
+						walls.set_cell(cell, WallTiles.wall_source(style, false), Vector2i.ZERO)
 					if MARKERS.has(ch):
 						_add_marker(root, area, ch, cell)
 					else:
 						marks[cell] = ch
+	_dress(walls, ground, rows, style)
 	var helpers := {}
 	var parts := []
 	var seen := {}
@@ -305,6 +298,23 @@ func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kin
 					worm.set("keep_direction", false)
 					worm.set("charge", true)
 	return rows.size()
+
+## 墙按四邻换成带墙沿的那一格，空地铺地面。地图外面算墙（不画墙沿、不铺地）。
+func _dress(walls: TileMapLayer, ground: TileMapLayer, rows: PackedStringArray, style: int) -> void:
+	for y in rows.size():
+		for x in rows[y].length():
+			var cell := Vector2i(x, y)
+			var src := walls.get_cell_source_id(cell)
+			if src != -1:
+				var m := 0
+				for d: Array in WallTiles.DIRS:
+					var nb: Vector2i = cell + d[1]
+					var inside := nb.y >= 0 and nb.y < rows.size() and nb.x >= 0 and nb.x < rows[nb.y].length()
+					if inside and not WallTiles.is_wall(walls, nb):
+						m |= d[0]
+				walls.set_cell(cell, src, Vector2i(m, WallTiles.variant(cell)))
+			elif rows[y][x] != " ":
+				ground.set_cell(cell, WallTiles.floor_source(style), Vector2i(WallTiles.floor_mask(walls, cell), WallTiles.variant(cell)))
 
 func _add(root: Node, parent: Node, node: Node) -> void:
 	parent.add_child(node, true)

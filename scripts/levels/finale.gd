@@ -100,6 +100,9 @@ func _setup_tint() -> void:
 		_tint_from = _tint_to - 1.0
 
 func _collect_tint_items(area: Node2D) -> void:
+	var ground := area.get_node_or_null(^"Floor") as TileMapLayer
+	if ground != null:
+		_tint_items.append(ground)
 	var walls := area.get_node_or_null(^"Walls") as TileMapLayer
 	if walls != null:
 		_tint_items.append(walls)

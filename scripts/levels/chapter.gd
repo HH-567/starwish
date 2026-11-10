@@ -96,6 +96,9 @@ func _apply_tint(area: Node2D, c: Color) -> void:
 	var walls := area.get_node_or_null(^"Walls") as TileMapLayer
 	if walls != null:
 		walls.modulate = c
+	var ground := area.get_node_or_null(^"Floor") as TileMapLayer
+	if ground != null:
+		ground.modulate = c
 	var entities := area.get_node_or_null(^"Entities") as Node2D
 	if entities != null:
 		entities.modulate = c.lerp(Color.WHITE, 0.35)

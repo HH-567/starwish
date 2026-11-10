@@ -363,12 +363,16 @@ func _smash(col: KinematicCollision2D) -> void:
 		return
 	var center := _hit_cell(tiles, col)
 	var r := Game.tuning.smash_radius
+	var erased: Array[Vector2i] = []
 	for x in range(-r, r + 1):
 		for y in range(-r, r + 1):
 			var cell := center + Vector2i(x, y)
 			var data := tiles.get_cell_tile_data(cell)
 			if data != null and not data.get_custom_data("unbreakable"):
 				tiles.erase_cell(cell)
+				erased.append(cell)
+	# 周围的墙重新算墙沿、空出来的地方铺上地面（只是画面）。
+	WallTiles.refresh_around(tiles, tiles.get_parent().get_node_or_null(^"Floor") as TileMapLayer, erased)
 	# 立刻重建碰撞，这一帧剩下的位移才能穿过去。
 	tiles.update_internals()
 	var at := tiles.to_global(tiles.map_to_local(center))
