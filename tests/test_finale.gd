@@ -79,7 +79,7 @@ class Runner extends Node:
 
 	func _in_ending() -> bool:
 		var scene := get_tree().current_scene
-		return Game.flow == Game.Flow.ENDING and scene != null and scene.scene_file_path == Game.ENDING_SCENE
+		return Game.flow == Game.Flow.ENDING and scene != null and scene.scene_file_path == Game.ending_scene(Game.ending)
 
 	func _run() -> bool:
 		_check("各章的小人一共 NPC_TOTAL 个", _npc_count() == Game.NPC_TOTAL, "%d" % _npc_count())

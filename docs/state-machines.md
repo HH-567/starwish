@@ -19,7 +19,7 @@ v2：去掉速度解锁和必救，加上铁门、栅栏、帮助和两个结局
 | RESPAWN | 淡出完成 | LOADING | 同一章，从检查点开始 |
 | PLAYING | 进入出口 | CLEAR | 清空 checkpoint，存档 |
 | CLEAR | 演出结束 | LOADING | 下一章；ch4 之后进终章 |
-| CHASE | 到达逃离点 | ENDING | 正常结局：小星逃离，长夜暂退。一个都没救也会进 |
+| CHASE | 到达逃离点 | ENDING | 正常结局：小星逃离，长夜暂退。一个都没救也会进。播结局动画（`ending_normal.tscn`，最后一段循环），Esc 回标题 |
 | CHASE | 噬光者被撞碎 | ENDING | 隐藏结局：噬光者体内掉出电灯泡设计图，被救的人各用自己的方式帮忙，把整座城一盏盏点亮 |
 | ENDING | 演出结束 | TITLE | 记录 endings，存档 |
 

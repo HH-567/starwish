@@ -179,6 +179,10 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
   - 救了锁匠 → 顶部直线捷径 3 个拐弯（铁门走近自己开）。
 - 加速带由 NPC 在中途部署；回程铺灯演出。
 - 双结局：撞碎噬光者 = 隐藏结局；被追上 = 普通结局。
+- 普通结局（2026-11-10）：跑到逃离点后播 `scenes/ui/ending_normal.tscn` 动画——城市全景、小星沿贝塞尔曲线飞到左上角锁死、
+  噬光者从底部长出来把城市的灯一栋栋吸走、再缩回去消失；之后只循环最后 1.6 秒（无光城市 + 小星伪飞行）。
+  Esc 或右下角的房子图标回标题。半分辨率 SubViewport + Nearest 放大；时间线写在 `ending_normal.gd` 文件头，
+  测试 `tests/test_ending_normal`。城市剪影没有素材，是程序画的占位（`ending_world.gd` 里的 TODO）
 
 ### 7.4 打击感
 - 白热冲击环 + 放射火花（`hit_burst.gd`，0.3s）

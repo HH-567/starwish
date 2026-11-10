@@ -59,6 +59,8 @@ const FINALE_SCENE := "res://scenes/levels/finale.tscn"
 const NPC_TOTAL := 12
 const TITLE_SCENE := "res://scenes/ui/title.tscn"
 const ENDING_SCENE := "res://scenes/ui/ending.tscn"
+## 正常结局：跑到逃离点之后的动画（城市被噬光者吞掉、小星飞走），循环播放，Esc 回标题。
+const ENDING_NORMAL_SCENE := "res://scenes/ui/ending_normal.tscn"
 const PAUSE_SCENE := "res://scenes/ui/pause_menu.tscn"
 const FADE_TIME := 0.35
 ## 进了出口之后停多久再切到下一章。
@@ -254,6 +256,10 @@ func _on_boss_state_changed(state: int) -> void:
 		await get_tree().create_timer(Boss.FADE_TIME).timeout
 		_show_ending(&"hidden" if state == Boss.State.SHATTERED else &"main")
 
+## 结局用哪个场景：隐藏结局是"整座城都亮了"的结局页，正常结局是动画。
+static func ending_scene(kind: StringName) -> String:
+	return ENDING_SCENE if kind == &"hidden" else ENDING_NORMAL_SCENE
+
 func _show_ending(kind: StringName) -> void:
 	flow = Flow.ENDING
 	ending = kind
@@ -263,7 +269,7 @@ func _show_ending(kind: StringName) -> void:
 	_write()
 	await _fade_to(1.0)
 	chapter_index = -1
-	get_tree().change_scene_to_file(ENDING_SCENE)
+	get_tree().change_scene_to_file(ending_scene(kind))
 	await get_tree().process_frame
 	await _fade_to(0.0)
 

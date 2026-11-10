@@ -78,7 +78,7 @@ class Runner extends Node:
 
 		await _until(func() -> bool: return _player().state == Player.State.ACTIVE)
 		_player().global_position = (_find(EscapePoint) as Node2D).global_position
-		_check("跑到逃离点：进正常结局", await _until(func() -> bool: return Game.flow == Game.Flow.ENDING and get_tree().current_scene != null and get_tree().current_scene.scene_file_path == Game.ENDING_SCENE))
+		_check("跑到逃离点：进正常结局", await _until(func() -> bool: return Game.flow == Game.Flow.ENDING and get_tree().current_scene != null and get_tree().current_scene.scene_file_path == Game.ENDING_NORMAL_SCENE))
 		_check("存档记下正常结局，没有可继续的章节", _disk().get("endings", {}).get("main") == true and _disk().get("chapter") == "")
 
 		Game.to_title()
