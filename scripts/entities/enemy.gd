@@ -63,6 +63,8 @@ func _load_art() -> void:
 		return
 	_art = Sprite2D.new()
 	_art.texture = _tex_idle if _tex_idle != null else _tex_aim
+	# 身体画在自己的 _draw 下面：眼睛和瞄准红线要压在身体上面。
+	_art.show_behind_parent = true
 	add_child(_art)
 
 func _physics_process(delta: float) -> void:
@@ -210,7 +212,20 @@ func _draw() -> void:
 		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 24, EDGE_COLOR, 2.0, true)
 		return
 	if _art != null:
-		# 有图就只画"瞄准红线"这一层游戏信息，身体交给贴图。
+		# 有图时身体交给贴图（跟着环境光，暗处几乎看不见），这里画自己发光的那两点眼睛和瞄准红线：
+		# 暗处只看得见一对红眼——瞄准时越睁越大、越来越亮，冷却时眯起来。
+		var open := 0.35
+		match state:
+			State.AIM:
+				open = lerpf(0.6, 1.0, clampf(time / maxf(_aim_time(), 0.01), 0.0, 1.0))
+			State.FIRE:
+				open = 1.0
+			State.COOLDOWN:
+				open = 0.2
+		for s in [-1.0, 1.0]:
+			var at := Vector2(2.6 * s, -5.0)
+			draw_circle(at, 1.2 + 2.4 * open, Color(EYE_COLOR, 0.18 * open))
+			draw_rect(Rect2(at - Vector2(1.0, 0.5 + 0.9 * open), Vector2(2.0, 1.0 + 1.8 * open)), Color(EYE_COLOR, 0.5 + 0.5 * open))
 		if state == State.AIM:
 			# 按这一只实际的瞄准时间画满：后面几章瞄得快，用 aim_time 算的话红线还没画满就开枪了。
 			var k2 := clampf(time / maxf(_aim_time(), 0.01), 0.0, 1.0)

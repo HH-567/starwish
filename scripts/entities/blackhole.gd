@@ -11,6 +11,9 @@ const CORE := Color("141020")
 const ART := "res://assets/art/hazards/blackhole.png"
 
 var _art: Sprite2D
+const USE_ART := false
+## 吸积盘上的光点数。
+const DOTS := 110
 
 @export var radius := 200.0:
 	set(value):
@@ -29,7 +32,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	material = Lighting.unshaded()
-	if ResourceLoader.exists(ART):
+	# 原来的 128 px 旋涡贴图放大到 400 px 直径后全是马赛克，改成程序画（见 _draw）。
+	if USE_ART and ResourceLoader.exists(ART):
 		var tex := load(ART) as Texture2D
 		if tex != null:
 			_art = Sprite2D.new()
@@ -66,10 +70,24 @@ func _draw() -> void:
 		# 只留最外圈作用范围的提示线。
 		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Color(COLOR, 0.12), 1.0, true)
 		return
-	draw_circle(Vector2.ZERO, 26.0, CORE)
-	for k in 3:
-		var spin := _t * (0.9 + 0.3 * k) + k * TAU / 3.0
-		var ring := radius * (0.45 + 0.18 * k)
-		draw_arc(Vector2.ZERO, ring, spin, spin + PI * 1.2, 48, Color(COLOR, 0.5 - 0.1 * k), 2.5, true)
-	# 半径边缘一圈淡淡的，提示作用范围。
+	var disk := radius * 0.62
+	var hole := radius * 0.13
+	# 作用范围：一圈淡淡的，外面一层更淡的光晕（"这片地方不对劲"）
+	draw_circle(Vector2.ZERO, disk * 1.05, Color(COLOR, 0.035))
 	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, Color(COLOR, 0.12), 1.0, true)
+	# 吸积盘：光点沿螺旋往里掉，越往里转得越快、越亮越白。
+	for i in DOTS:
+		var seed := float(i) * 2.399963
+		var k := fposmod(_t * 0.09 + float(i) / DOTS, 1.0)
+		var r := lerpf(disk, hole * 1.15, k * k)
+		var ang := seed + k * 7.0 + _t * 0.4
+		var p := Vector2.from_angle(ang) * r
+		var tangent := Vector2.from_angle(ang + PI * 0.5) * (2.0 + 9.0 * k)
+		var c := COLOR.lerp(Color(1.0, 0.95, 1.0), k * k)
+		var a := minf(k * 4.0, 1.0) * (0.25 + 0.6 * k)
+		draw_line(p - tangent, p, Color(c, a), 1.0 + 1.5 * k, true)
+	# 视界：一圈细亮环 + 正中的黑核
+	draw_circle(Vector2.ZERO, hole * 1.35, Color(COLOR, 0.25))
+	draw_arc(Vector2.ZERO, hole * 1.12, 0.0, TAU, 48, Color(1.0, 0.9, 1.0, 0.8), 2.0, true)
+	draw_circle(Vector2.ZERO, hole, CORE)
+	draw_circle(Vector2.ZERO, hole * 0.8, Color(0.0, 0.0, 0.0))

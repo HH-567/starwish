@@ -37,7 +37,12 @@ func _ready() -> void:
 	var player := get_tree().get_first_node_in_group(&"player") as Player
 	player.aim_from_mouse = false
 	var cam := player.get_node("Camera") as Camera2D
-	_walls = get_tree().current_scene.find_child("Walls", true, false) as TileMapLayer
+	# 去掉镜头范围：小星永远在画面正中，方便裁图放大看细节。
+	cam.limit_left = -10000000
+	cam.limit_top = -10000000
+	cam.limit_right = 10000000
+	cam.limit_bottom = 10000000
+	_walls =get_tree().current_scene.find_child("Walls", true, false) as TileMapLayer
 	while player.state != Player.State.ACTIVE:
 		await get_tree().process_frame
 	await _hold(HOLD)

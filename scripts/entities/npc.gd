@@ -21,7 +21,9 @@ const DREAM_TIME := 0.8
 ## 美术图：assets/art/characters/npc_<职业>.png。没有图就退回原来的几何画法（两种都能跑）。
 const ART_DIR := "res://assets/art/characters/"
 ## 图是 32×32 的剪影，脚底在画布中心偏下，往上挪一点和原来的小人脚底对齐。
-const ART_OFFSET := Vector2(0.0, -7.0)
+const ART_OFFSET := Vector2(0.0, -7.0) * ART_SCALE
+## 小人是要救的目标，原尺寸（人形只占 32 格里的 20 来像素）在 1280×720 里太小，放大一点。
+const ART_SCALE := 1.4
 
 ## 职业：决定外观、浮现的画面和帮助（docs/level-data-format.md 第 7 节）。
 @export_enum("none", "watchman", "gardener", "doctor", "painter", "guide", "miner", "locksmith", "postman", "musician", "listener", "clockmaker", "scientist") var role := "none":
@@ -171,6 +173,7 @@ func _load_art() -> void:
 	_art = Sprite2D.new()
 	_art.texture = tex
 	_art.position = ART_OFFSET
+	_art.scale = Vector2.ONE * ART_SCALE
 	add_child(_art)
 	if state == State.RESCUED:
 		_art.material = Lighting.unshaded()

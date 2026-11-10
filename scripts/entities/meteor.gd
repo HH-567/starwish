@@ -22,6 +22,8 @@ func _ready() -> void:
 	if Engine.is_editor_hint():
 		return
 	material = Lighting.unshaded()
+	if ResourceLoader.exists(BLAST_ART):
+		_blast_tex = load(BLAST_ART) as Texture2D
 	# 一上来先等一个间隔，别在读档/出生那一刻就砸下来。
 	_set_state(State.COOLDOWN)
 
@@ -29,6 +31,7 @@ func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	time += delta
+	_blast_t += delta
 	match state:
 		State.COOLDOWN:
 			if time >= interval:
@@ -48,7 +51,15 @@ func _physics_process(delta: float) -> void:
 ## meteor_warn.wav 本身的长度（从开始到落地那一下）。
 const WARN_SOUND_TIME := 1.1
 
+## 爆炸贴图和焦痕持续多久（秒）。
+const BLAST_TIME := 0.45
+const SCORCH_TIME := 1.8
+const BLAST_ART := "res://assets/art/hazards/meteor_hit.png"
+var _blast_t := 99.0
+var _blast_tex: Texture2D
+
 func _impact() -> void:
+	_blast_t = 0.0
 	Debris.spawn(get_parent(), global_position, IMPACT_COLOR, 18, 300.0, 6.0, true)
 	Audio.play_at(&"meteor", global_position)
 	Game.player_hit.emit(&"meteor")
@@ -69,6 +80,11 @@ func _draw() -> void:
 	if Engine.is_editor_hint():
 		draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, Color(WARN_COLOR, 0.3), 2.0, true)
 		return
+	# 上一次砸下来留下的焦痕，慢慢淡掉（冷却期间也在）。
+	if _blast_t < SCORCH_TIME:
+		var s := 1.0 - _blast_t / SCORCH_TIME
+		draw_circle(Vector2.ZERO, radius * 0.55, Color(0.0, 0.0, 0.0, 0.35 * s))
+		draw_circle(Vector2.ZERO, radius * 0.3, Color(1.0, 0.55, 0.25, 0.25 * s * s))
 	match state:
 		State.WARNING:
 			var k := clampf(time / maxf(warn_time, 0.01), 0.0, 1.0)
@@ -76,6 +92,19 @@ func _draw() -> void:
 			draw_circle(Vector2.ZERO, radius, Color(WARN_COLOR, 0.06 + 0.12 * k))
 			draw_arc(Vector2.ZERO, lerpf(radius, radius * 0.35, k), 0.0, TAU, 48, Color(WARN_COLOR, 0.35 + 0.55 * k), 3.0, true)
 			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, Color(WARN_COLOR, 0.25), 1.5, true)
-		State.IMPACT:
-			draw_circle(Vector2.ZERO, radius, Color(IMPACT_COLOR, 0.5))
-			draw_arc(Vector2.ZERO, radius, 0.0, TAU, 48, IMPACT_COLOR, 4.0, true)
+			# 后半段：一颗拖着尾巴的火球从右上方斜着落进圈心，看得出"它从哪儿来、砸在哪儿"。
+			if k > 0.45:
+				var f := (k - 0.45) / 0.55
+				var from := Vector2(radius * 1.3, -radius * 2.6)
+				var at := from.lerp(Vector2.ZERO, f * f)
+				var tail := from.lerp(Vector2.ZERO, maxf(f * f - 0.18, 0.0))
+				draw_line(tail, at, Color(IMPACT_COLOR, 0.25 + 0.5 * f), 2.0 + 4.0 * f, true)
+				draw_circle(at, 3.0 + 4.0 * f, Color(1.0, 0.95, 0.8, 0.9))
+				draw_circle(at, 7.0 + 8.0 * f, Color(IMPACT_COLOR, 0.25))
+	# 落地：冲击环往外推 + 爆炸贴图，0.45 秒淡完（判定仍然只在落地那一帧）。
+	if _blast_t < BLAST_TIME:
+		var b := _blast_t / BLAST_TIME
+		if _blast_tex != null:
+			var r := radius * (0.8 + 0.5 * b)
+			draw_texture_rect(_blast_tex, Rect2(-Vector2(r, r), Vector2(r, r) * 2.0), false, Color(1, 1, 1, 1.0 - b))
+		draw_arc(Vector2.ZERO, radius * (0.4 + 0.9 * b), 0.0, TAU, 48, Color(1.0, 0.95, 0.8, 0.9 * (1.0 - b)), 2.0 + 6.0 * (1.0 - b), true)

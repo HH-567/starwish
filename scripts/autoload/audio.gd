@@ -237,14 +237,15 @@ func _db(id: StringName) -> float:
 	return VOLUME + float(LEVELS.get(id, 0.0)) + _volume_db(Save.sfx_volume)
 
 ## 播一个音效。locked 时什么都不做；冷却内的重复触发也丢掉。
-func play(id: StringName, pitch_mul := 1.0) -> void:
+## jitter 为假时不加随机音高（按音阶走的音效，加了会跑调）。
+func play(id: StringName, pitch_mul := 1.0, jitter := true) -> void:
 	if not _accept(id):
 		return
 	var player := _players[_next]
 	_next = (_next + 1) % _players.size()
 	player.stream = STREAMS[id]
 	player.volume_db = _db(id)
-	player.pitch_scale = pitch_mul * (1.0 + randf_range(-PITCH_JITTER, PITCH_JITTER))
+	player.pitch_scale = pitch_mul * ((1.0 + randf_range(-PITCH_JITTER, PITCH_JITTER)) if jitter else 1.0)
 	player.play()
 
 ## 在世界坐标 pos 播一个音效：离镜头越远越小声，超过 HEAR_PX 干脆不播（不占声部）。
@@ -393,7 +394,7 @@ func play_shard() -> void:
 	_shard_combo = _shard_combo + 1 if now - _shard_at < SHARD_WINDOW else 0
 	_shard_at = now
 	var step: int = SHARD_STEPS[mini(_shard_combo, SHARD_STEPS.size() - 1)]
-	play(&"shard", pow(2.0, step / 12.0))
+	play(&"shard", pow(2.0, step / 12.0), false)
 
 func _on_boss_state(state: int) -> void:
 	if state == Boss.State.EMERGE:
