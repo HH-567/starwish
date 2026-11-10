@@ -4,20 +4,22 @@ extends Control
 ## 进入条件：12 个人全救（科学家才开虫洞）+ 冲进虫洞掉头撞碎噬光者。
 ##
 ## 播放规则（游戏设计定的）：
-##   每页一开始只露第一格，其余纯白；每 PAGE_WAIT 秒自动多放一格；
+##   黑底。每页一开始只露第一格，其余纯黑；每 PAGE_WAIT 秒自动多放一格；
 ##   点一下鼠标（触屏、空格/回车也算）立刻放下一格，并把计时重置；
 ##   四格都出来了再点，翻到下一页；第三页之后是 CG；
-##   CG 上点一下回标题，Esc 随时回标题。
+##   CG 有运镜：先拉近到左下（人群），一路推到中、中上（灯泡）、中，再拉远到正常大小；
+##   运镜途中点一下直接跳到结尾，运镜结束以后再点回标题；Esc 随时回标题。
 ##
-## 漫画是一张白底四格图，四个画面的位置由 tools/comic_panels.py 量出来（见下面的 PANELS）。
-## 没轮到的格子：用它的多边形（比实际画面大一圈）涂白——多出来的那圈落在格子的白缝里，
-## 所以看到的边是干净的白，不会在画面上切出一条锯齿。
-## 缺图时 Game.ending_scene 会退回老的两句台词结局页（ending.tscn）。
+## 漫画是白底四格图，先由 tools/comic_panels.py 做成黑底版（N_black.png）并量出四格的位置（PANELS）。
+## 没轮到的格子用它的多边形（比实际画面大一圈）涂黑——多出来的那圈落在已经黑了的格间空缝里，
+## 所以看不到边，也不会切出锯齿。
+## 缺图时 Game.ending_scene 会退回老的结局页（ending.tscn）。
 
+## 三页漫画的黑底版（tools/comic_panels.py 从 1.png/2.png/3.png 生成）。
 const IMAGES := [
-	"res://assets/art/cg/1.png",
-	"res://assets/art/cg/2.png",
-	"res://assets/art/cg/3.png",
+	"res://assets/art/cg/1_black.png",
+	"res://assets/art/cg/2_black.png",
+	"res://assets/art/cg/3_black.png",
 ]
 const CG_IMAGE := "res://assets/art/cg/CG.png"
 const PANELS_PER_PAGE := 4
@@ -27,7 +29,17 @@ const PAGE_WAIT := 3.0
 const MASK_GROW := 3.5
 ## CG 刚出来时先锁一下输入，免得翻页那一下双击顺手把 CG 也点掉。
 const CG_LOCK := 0.5
-const PAPER := Color.WHITE
+## CG 运镜的关键帧：[秒, 画面中心（0..1）, 缩放]。段与段之间用 smoothstep 过渡。
+## 先拉近到左下（人群），推到中（小星）、中上（灯泡）、中，最后拉远到正常大小。
+const CG_CAMERA := [
+	[0.0, Vector2(0.26, 0.80), 1.0],
+	[0.8, Vector2(0.26, 0.80), 2.2],
+	[2.4, Vector2(0.50, 0.50), 2.2],
+	[4.0, Vector2(0.50, 0.28), 2.2],
+	[5.6, Vector2(0.50, 0.50), 2.2],
+	[7.6, Vector2(0.50, 0.50), 1.0],
+]
+const BLACK := Color.BLACK
 
 ## 每页四格画面的多边形（0..1 比例，阅读顺序：左上、右上、左下、右下）。
 ## 由 tools/comic_panels.py 从白底图上量出来；换图后重跑那个脚本，把这一段整段换掉。
@@ -58,6 +70,8 @@ var _page := 0
 var _shown := 1
 var _wait := 0.0
 var _cg_lock := 0.0
+## CG 播了多久，运镜按这个时间取。
+var _cg_time := 0.0
 var _leaving := false
 var _pages: Array[Texture2D] = []
 var _cg: Texture2D
@@ -91,11 +105,49 @@ func progress() -> Vector2i:
 func finished() -> bool:
 	return _leaving
 
+## 运镜播到第几秒了（测试和截图用）。
+func cg_time() -> float:
+	return _cg_time
+
+## CG 运镜在 t 秒时的 (中心, 缩放)。测试和截图用。
+static func camera_at(t: float) -> Array:
+	var count := CG_CAMERA.size()
+	var last: Array = CG_CAMERA[count - 1]
+	var done: float = last[0]
+	if t >= done:
+		return [last[1], last[2]]
+	var prev: Array = CG_CAMERA[0]
+	for i in range(1, count):
+		var key: Array = CG_CAMERA[i]
+		var k1: float = key[0]
+		if t <= k1:
+			var k0: float = prev[0]
+			var span := maxf(k1 - k0, 0.001)
+			var u := smoothstep(0.0, 1.0, (t - k0) / span)
+			var c0: Vector2 = prev[1]
+			var c1: Vector2 = key[1]
+			var z0: float = prev[2]
+			var z1: float = key[2]
+			return [c0.lerp(c1, u), lerpf(z0, z1, u)]
+		prev = key
+	return [last[1], last[2]]
+
+## 现在 CG 的缩放（1 = 正常大小）。测试和截图用。
+func cg_zoom() -> float:
+	return camera_at(_cg_time)[1]
+
+## 运镜一共多长，秒。
+static func camera_length() -> float:
+	return CG_CAMERA[CG_CAMERA.size() - 1][0]
+
 func _process(delta: float) -> void:
 	if _leaving:
 		return
 	if _page >= IMAGES.size():
 		_cg_lock = maxf(_cg_lock - delta, 0.0)
+		if _cg_time < camera_length():
+			_cg_time += delta
+			queue_redraw()
 		return
 	_wait += delta
 	if _shown < PANELS_PER_PAGE and _wait >= PAGE_WAIT:
@@ -123,8 +175,15 @@ func _unhandled_input(event: InputEvent) -> void:
 ## 下一步：放一格，或者（四格都齐了）翻页，或者（在看 CG）回标题。
 func _advance() -> void:
 	if _page >= IMAGES.size():
-		if _cg_lock <= 0.0:
-			_leave()
+		if _cg_lock > 0.0:
+			return
+		var done := camera_length()
+		if _cg_time < done:
+			# 运镜途中点一下：先把这个镜头放完（停在正常大小），再点才回标题。
+			_cg_time = done
+			queue_redraw()
+			return
+		_leave()
 		return
 	if _shown < PANELS_PER_PAGE:
 		_reveal()
@@ -143,6 +202,7 @@ func _turn_page() -> void:
 	_wait = 0.0
 	if _page >= IMAGES.size():
 		_cg_lock = CG_LOCK
+		_cg_time = 0.0
 		Audio.play(&"ending")
 	else:
 		Audio.play(&"clear")
@@ -155,10 +215,10 @@ func _leave() -> void:
 	Game.to_title()
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), PAPER)
+	draw_rect(Rect2(Vector2.ZERO, size), BLACK)
 	if _page >= IMAGES.size():
 		if _cg != null:
-			draw_texture_rect(_cg, _fit(_cg), false)
+			_draw_cg()
 		return
 	if _page >= _pages.size() or _pages[_page] == null:
 		return
@@ -169,10 +229,19 @@ func _draw() -> void:
 		var pts := _panel_points(_page, i, page)
 		if pts.size() < 3:
 			continue
-		draw_colored_polygon(pts, PAPER)
+		draw_colored_polygon(pts, BLACK)
 		var loop := pts.duplicate()
 		loop.append(pts[0])
-		draw_polyline(loop, PAPER, MASK_GROW * 2.0)
+		draw_polyline(loop, BLACK, MASK_GROW * 2.0)
+
+## CG 按运镜画：zoom=1、中心 (0.5,0.5) 时就是"整张放进屏幕居中"的正常大小。
+func _draw_cg() -> void:
+	var cam := camera_at(_cg_time)
+	var center: Vector2 = cam[0]
+	var zoom: float = cam[1]
+	var normal := _fit(_cg)
+	var drawn := normal.size * zoom
+	draw_texture_rect(_cg, Rect2(size * 0.5 - center * drawn, drawn), false)
 
 ## 整页（或 CG）按原比例放进屏幕，居中。
 func _fit(tex: Texture2D) -> Rect2:

@@ -1,5 +1,5 @@
 extends Node
-## 截图用：真结局连环画的几个状态（第一页第一格 / 第二格 / 四格齐 / 第二页第一格 / CG）。
+## 截图用：真结局连环画的几个状态（第一页第一格 / 第二格 / 四格齐 / 第二页第一格 / CG 运镜四段）。
 ##   godot --path . --rendering-driver opengl3 --fixed-fps 30 \
 ##     --write-movie .tmp_build/shots/comic/f.png res://tools/shots_ending_comic.tscn
 ## 打印的帧号就是对应那帧（文件名是 f + 8 位帧号）。
@@ -35,8 +35,14 @@ class Runner extends Node:
 			click(comic)
 			await _frames(2)
 		click(comic)
-		await _frames(20)
-		print("SHOT cg %d  page=%d" % [Engine.get_frames_drawn() - 1, comic.progress().x])
+		await _frames(24)
+		await _shot(comic, "cg_left")
+		await _frames(48)
+		await _shot(comic, "cg_mid")
+		await _frames(48)
+		await _shot(comic, "cg_up")
+		await _frames(110)
+		await _shot(comic, "cg_full")
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 		get_tree().quit()
 
@@ -52,7 +58,8 @@ class Runner extends Node:
 
 	func _shot(comic: EndingComic, name: String) -> void:
 		await _frames(2)
-		print("SHOT %s %d  page=%d shown=%d" % [name, Engine.get_frames_drawn() - 1, comic.progress().x, comic.progress().y])
+		print("SHOT %s %d  page=%d shown=%d t=%.2f zoom=%.2f" % [name, Engine.get_frames_drawn() - 1,
+			comic.progress().x, comic.progress().y, comic.cg_time(), comic.cg_zoom()])
 
 	func _frames(n: int) -> void:
 		for i in n:

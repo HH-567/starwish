@@ -259,14 +259,17 @@ CLOSED →（锁匠已救）OPEN。
 
 ## 19. 真结局连环画（EndingComic）
 
-撞碎噬光者之后播（`scenes/ui/ending_comic.tscn`，`scripts/ui/ending_comic.gd`）。白底、按比例居中，屏幕上一个字都不写。
+撞碎噬光者之后播（`scenes/ui/ending_comic.tscn`，`scripts/ui/ending_comic.gd`）。**纯黑底**，屏幕上一个字都不写。
 
 - 素材：`assets/art/cg/1.png`、`2.png`、`3.png` 各是一页白底四格漫画，`CG.png` 是最后一张 CG。
-- 一页 = 4 格，阅读顺序（左上、右上、左下、右下）。**一开始只露第一格**，其余三格纯白。
+  `1_black.png` / `2_black.png` / `3_black.png` 是它们的黑底版（`tools/comic_panels.py` 把四格以外刷黑），游戏里用黑底版。
+- 一页 = 4 格，阅读顺序（左上、右上、左下、右下）。**一开始只露第一格**，其余三格纯黑。
 - 计时：每 `PAGE_WAIT`（3 秒）自动多露一格；**点一下**（左键/触屏/空格/回车）立刻多露一格，并把 3 秒计时重置。
 - 四格都露出来以后再点一下，翻到下一页（重新从"只有第一格"开始）。
-- 第三页之后进 CG；CG 上点一下回标题（`Game.to_title()`）。Esc 任何时候都能直接回标题。
-- 涂白：每格的多边形记在 `ending_comic.gd` 的 `PANELS` 里（`tools/comic_panels.py` 从白底图量出来的），
-  没轮到的格子用这个多边形（往外多盖 `MASK_GROW` 像素，落在格间白缝里）涂白。
+- 第三页之后进 CG。CG 有运镜（`CG_CAMERA` 关键帧）：0→0.8 秒拉近到左下（人群，2.2 倍），
+  2.4 秒推到中（小星），4.0 秒推到中上（灯泡），5.6 秒回到中，7.6 秒拉远到正常大小，之后停住。
+  段与段之间 smoothstep；运镜途中点一下直接跳到结尾，运镜结束以后再点回标题。Esc 任何时候都能直接回标题。
+- 涂黑：每格的多边形记在 `ending_comic.gd` 的 `PANELS` 里（`tools/comic_panels.py` 从原图量出来的），
+  没轮到的格子用这个多边形（往外多盖 `MASK_GROW` 像素，落在已经黑了的格间空缝里）涂黑。
 - 缺图时 `Game.ending_scene(&"hidden")` 退回老的 `ending.tscn`（"整座城都亮了"），所以删图不会崩。
 - 结局记录在进结局时就已经写盘（`Save.endings["hidden"]`），跟玩家看不看完无关。

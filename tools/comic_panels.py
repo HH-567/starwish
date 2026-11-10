@@ -6,8 +6,12 @@
 （上排左、上排右、下排左、下排右）。顺便量一下相邻两格之间的白缝有多宽，
 用来确认涂白时多边形往外放大几像素是安全的。
 
+顺便把它做成黑底版：页面留白和格间空缝（从画面边缘能连过去的那片白）刷成纯黑，
+存成 assets/art/cg/N_black.png——游戏里连环画就是黑底，没露出来的格子再压一层黑多边形，
+多边形的边落在已经黑了白缝里，所以看不到锯齿。
+
 换图以后重跑：
-    python tools/comic_panels.py            # 打印 const PANELS
+    python tools/comic_panels.py            # 打印 const PANELS，并重写 N_black.png
     python tools/comic_panels.py --preview  # 顺便把"只露前 k 格"的样子画到 .tmp_build/
 然后把打印出来的 PANELS 整段替换掉 scripts/ui/ending_comic.gd 里同名的那段。
 """
@@ -145,6 +149,49 @@ def measure(path):
     return im, [r[2] for r in regions], gap
 
 
+def _dilate(mask, steps=1):
+    out = mask.copy()
+    for _ in range(steps):
+        nxt = out.copy()
+        nxt[1:, :] |= out[:-1, :]
+        nxt[:-1, :] |= out[1:, :]
+        nxt[:, 1:] |= out[:, :-1]
+        nxt[:, :-1] |= out[:, 1:]
+        out = nxt
+    return out
+
+
+def _erode(mask, steps=1):
+    return ~_dilate(~mask, steps)
+
+
+def matte(path, polys):
+    """把四格以外的部分刷成纯黑，存成 <名字>_black.png。
+
+    四格画面本身用凸包保护起来（画面内部的亮部不会被涂黑），凸包以外全部清零：
+    页面留白、格间白缝、散在空缝里的小亮点都变黑。
+    凸包边上一圈"白底留给画面的描边"也压暗，免得黑底上挂一条白边。
+    """
+    im = Image.open(path).convert("RGB")
+    w, h = im.size
+    inside = Image.new("L", (w, h), 0)
+    draw = ImageDraw.Draw(inside)
+    for poly in polys:
+        draw.polygon([(x * w, y * h) for x, y in poly], fill=255)
+    inside = np.asarray(inside) > 127
+
+    out = np.asarray(im).copy()
+    out[~inside] = 0
+    # 凸包内侧 2 像素的边带：把偏亮的过渡像素压暗（那是白底留下的描边）
+    band = inside & ~_erode(inside, 2)
+    bright = out.min(axis=2) > 40
+    out[band & bright] = (out[band & bright] * 0.35).astype(np.uint8)
+
+    name = path[:-4] + "_black.png"
+    Image.fromarray(out).save(name)
+    return name, int((~inside).sum())
+
+
 def gdscript(pages):
     lines = ["const PANELS := ["]
     for polys in pages:
@@ -182,6 +229,9 @@ def main():
         pages.append(polys)
         print("# %s: %d 格 %s，格间最窄白缝 %d px（原图）" % (name, len(polys), [len(p) for p in polys], gap),
               file=sys.stderr)
+    for name, polys in zip(PAGES, pages):
+        path, n = matte("%s/%s" % (ROOT, name), polys)
+        print("matte: %s（四格以外 %d 像素）" % (path, n), file=sys.stderr)
     if "--preview" in sys.argv:
         preview(pages, images)
     print(gdscript(pages))
