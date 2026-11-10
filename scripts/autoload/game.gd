@@ -59,6 +59,9 @@ const FINALE_SCENE := "res://scenes/levels/finale.tscn"
 const NPC_TOTAL := 12
 const TITLE_SCENE := "res://scenes/ui/title.tscn"
 const ENDING_SCENE := "res://scenes/ui/ending.tscn"
+## 真结局（隐藏结局）正常播的是连环画：三页四格漫画 + 一张 CG（见 ending_comic.gd）。
+## 图缺了才退回 ENDING_SCENE 那句"整座城都亮了"。
+const ENDING_COMIC_SCENE := "res://scenes/ui/ending_comic.tscn"
 ## 正常结局：跑到逃离点之后的动画（城市被噬光者吞掉、小星飞走），循环播放，Esc 回标题。
 const ENDING_NORMAL_SCENE := "res://scenes/ui/ending_normal.tscn"
 const PAUSE_SCENE := "res://scenes/ui/pause_menu.tscn"
@@ -256,8 +259,10 @@ func _on_boss_state_changed(state: int) -> void:
 		await get_tree().create_timer(Boss.FADE_TIME).timeout
 		_show_ending(&"hidden" if state == Boss.State.SHATTERED else &"main")
 
-## 结局用哪个场景：隐藏结局是"整座城都亮了"的结局页，正常结局是动画。
+## 结局用哪个场景：隐藏结局是连环画（缺图退回老结局页），正常结局是动画。
 static func ending_scene(kind: StringName) -> String:
+	if kind == &"hidden" and EndingComic.available():
+		return ENDING_COMIC_SCENE
 	return ENDING_SCENE if kind == &"hidden" else ENDING_NORMAL_SCENE
 
 func _show_ending(kind: StringName) -> void:

@@ -18,8 +18,10 @@ func _check(name: String, ok: bool, detail := "") -> void:
 	print("%s  %s  %s" % ["PASS" if ok else "FAIL", name, detail])
 
 func _run() -> bool:
-	_check("正常结局走动画，隐藏结局还是结局页",
-		Game.ending_scene(&"main") == Game.ENDING_NORMAL_SCENE and Game.ending_scene(&"hidden") == Game.ENDING_SCENE)
+	_check("正常结局走动画，隐藏结局走连环画",
+		Game.ending_scene(&"main") == Game.ENDING_NORMAL_SCENE
+			and Game.ending_scene(&"hidden") == Game.ENDING_COMIC_SCENE
+			and EndingComic.available())
 	# 只循环最后一段：第一遍照常走（10 秒），之后每 1.6 秒回到 LOOP_START。
 	var L0 := EndingNormal.LOOP_START
 	var L1 := L0 + EndingNormal.LOOP_LEN

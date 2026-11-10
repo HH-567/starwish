@@ -8,7 +8,7 @@
 ## 1. 一句话现状
 
 Godot 4.7.2 做的 2D 像素风叙事跑酷/潜行游戏，五个章节 + 终章 boss 追逐 + 双结局。
-**25 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
+**26 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
 
 ---
 
@@ -134,7 +134,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 
 ---
 
-## 6. 测试清单（25 项）
+## 6. 测试清单（26 项）
 
 | 测试 | 覆盖 |
 |---|---|
@@ -156,6 +156,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 | `test_flow` | 标题→游戏→暂停→结局的流程 |
 | `test_finale` | 终章追逐、加速带、双结局（迷宫在此测试里被抹平） |
 | `test_ending_normal` | 普通结局动画的时间线、循环段、Esc 回标题 |
+| `test_ending_comic` | 真结局连环画：3 秒一格、点击立刻一格并重置、四格后翻页、三页后 CG、CG 点击回标题 |
 | `test_title_sway` | 标题页鼠标视差：偏哪边往反方向挪、移出窗口回中、没人动鼠标时不晃 |
 | `test_lanes` | 赛道段拼接 |
 | `test_stage` | 速度阶段阈值 |
@@ -180,7 +181,11 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
   - 没救锁匠 → 7 个拐弯；
   - 救了锁匠 → 顶部直线捷径 3 个拐弯（铁门走近自己开）。
 - 加速带由 NPC 在中途部署；回程铺灯演出。
-- 双结局：撞碎噬光者 = 隐藏结局；被追上 = 普通结局。
+- 双结局：撞碎噬光者 = 隐藏结局（真结局）；被追上 = 普通结局。
+- 真结局（2026-11-10）：撞碎后播 `scenes/ui/ending_comic.tscn`——三页四格漫画 + 一张 CG。
+  每页一开始只露第一格，其余纯白；每 3 秒自动多露一格，点一下立刻多露一格并重置计时；
+  四格齐了再点翻页；三页之后是 CG，CG 上点一下回标题（Esc 随时回）。素材在 `assets/art/cg/`，
+  每格的位置由 `tools/comic_panels.py` 量出来写进 `ending_comic.gd`；缺图退回老的结局页。测试 `tests/test_ending_comic`。
 - 普通结局（2026-11-10）：跑到逃离点后播 `scenes/ui/ending_normal.tscn` 动画——城市全景、小星沿贝塞尔曲线飞到左上角锁死、
   噬光者从底部长出来把城市的灯一栋栋吸走、再缩回去消失，小星越飞越远、无光的城市缩到远景（第一遍共 10 秒）；之后只循环最后 1.6 秒（远处的无光城市 + 小星伪飞行）。
   Esc 或右下角的房子图标回标题。半分辨率 SubViewport + Nearest 放大；时间线写在 `ending_normal.gd` 文件头，
@@ -292,6 +297,8 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 - `tools/shots_feel.tscn`：用几种速度朝墙发射，录撞墙那几帧，看压扁/火花/顿挫
 - `tools/shots_title_sway.tscn`：标题页鼠标视差——把鼠标放到中间/右边/左上各录一帧，
   从帧里量得出每层错开多少（星空 8 / 天际线 17 / 地面 25 / 路灯小人 36）
+- `tools/shots_ending_comic.tscn`：真结局连环画的几个状态（第一页第一格 / 第二格 / 四格齐 / 第二页 / CG）
+- `tools/comic_panels.py`：从白底四格漫画量出四格的多边形，打印成 `ending_comic.gd` 里的 `PANELS`（换图重跑）
 - `tools/level_report.py`：每章主路线俯视图 + 路线长度、直道、小人离路线多远、补给密度（`.tmp_build/report_<章>.png`）
 - `tools/check_maps.py`：按小星半径查通行（ch1 那一遍现在把栅栏当实体）
 
@@ -307,6 +314,8 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
   - `tools/sprite_art.py`：影鬼三张（原 `shade_aim.png` 没去底，是个黑方块）
   - 出口、黑洞、流星落地、软垫是 `_draw` 程序画的
 - 代码里都是 `if ResourceLoader.exists(ART)`，**没有贴图就退化成几何绘制**，所以删图不会崩，只会变丑。
+- 真结局连环画在 `assets/art/cg/`：`1.png`/`2.png`/`3.png` 是白底四格漫画（2047×1152），`CG.png` 是最后的 CG（1881×1254）。
+  它们只被 `ending_comic.gd` 用到；换图后要重跑 `tools/comic_panels.py` 并把 `PANELS` 整段换掉，再 `--import`。
 - 风格：暗色剪影 + 暖光，人物只要轮廓能看出职业。
 
 ### 音频

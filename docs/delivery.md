@@ -31,7 +31,7 @@ python tools/check_maps.py
 #   还有 test_save / test_light / test_light_level / test_collisions / test_boss / test_level_smoke
 ```
 
-测试清单（25 个场景，脚本都在 `tests/` 里，头两行写明这条测试查什么）：
+测试清单（26 个场景，脚本都在 `tests/` 里，头两行写明这条测试查什么）：
 
 | 测试 | 查什么 |
 |---|---|
@@ -44,6 +44,7 @@ python tools/check_maps.py
 | test_save / test_light / test_light_level / test_collisions / test_boss | 存档格式、光、测试关通关、撞击表、噬光者 |
 | test_level_smoke | 两张测试关的冒烟（按右 2 秒，看有没有报错） |
 | test_ending_normal / test_title_sway | 普通结局动画的时间线；标题页鼠标视差（各层错开、移出窗口回中、没人动鼠标时不晃） |
+| test_ending_comic | 真结局连环画：3 秒一格、点击立刻一格并重置、四格后翻页、三页后 CG、CG 点击回标题 |
 
 ## 导出 Web
 

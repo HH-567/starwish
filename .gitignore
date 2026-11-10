@@ -5,3 +5,5 @@ build/
 .tmp_*/
 ## Windows 拷过来时附带的"来自网络"标记
 *:Zone.Identifier
+__pycache__/
+*.pyc
