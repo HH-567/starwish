@@ -29,15 +29,21 @@ const PAGE_WAIT := 3.0
 const MASK_GROW := 3.5
 ## CG 刚出来时先锁一下输入，免得翻页那一下双击顺手把 CG 也点掉。
 const CG_LOCK := 0.5
-## CG 运镜的关键帧：[秒, 画面中心（0..1）, 缩放]。段与段之间用 smoothstep 过渡。
-## 先拉近到左下（人群），推到中（小星）、中上（灯泡）、中，最后拉远到正常大小。
+## CG 运镜的关键帧：[秒, 画面中心（0..1）, 缩放]。
+## 中间用单调三次 Hermite 串成一根连续的曲线（切线取前后两段的平均斜率，方向反转处自动收成 0），
+## 所以过节点时速度是连着的，不会一卡一卡；只有首尾速度为零（轻轻起、轻轻停）。
+## 路线：正常大小 → 推近到左下（人群）→ 中（小星）→ 中上（灯泡）→ 中 → 拉远回正常大小。
+## 平移和推拉的时间是错开的：平移在某个机位收住的时候，推拉还在推，所以画面不会出现"完全停住"的一帧；
+## 推拉在 5 秒左右到顶（中上那个灯泡），那时候平移正在往回走。
 const CG_CAMERA := [
-	[0.0, Vector2(0.26, 0.80), 1.0],
-	[0.8, Vector2(0.26, 0.80), 2.2],
-	[2.4, Vector2(0.50, 0.50), 2.2],
-	[4.0, Vector2(0.50, 0.28), 2.2],
-	[5.6, Vector2(0.50, 0.50), 2.2],
-	[7.6, Vector2(0.50, 0.50), 1.0],
+	[0.0, Vector2(0.50, 0.50), 1.00],
+	[1.4, Vector2(0.30, 0.71), 2.10],
+	[2.8, Vector2(0.36, 0.62), 2.55],
+	[3.8, Vector2(0.50, 0.50), 2.70],
+	[4.6, Vector2(0.50, 0.28), 2.90],
+	[5.4, Vector2(0.50, 0.42), 3.00],
+	[6.2, Vector2(0.50, 0.50), 2.60],
+	[8.2, Vector2(0.50, 0.50), 1.00],
 ]
 const BLACK := Color.BLACK
 
@@ -111,26 +117,61 @@ func cg_time() -> float:
 
 ## CG 运镜在 t 秒时的 (中心, 缩放)。测试和截图用。
 static func camera_at(t: float) -> Array:
-	var count := CG_CAMERA.size()
-	var last: Array = CG_CAMERA[count - 1]
-	var done: float = last[0]
-	if t >= done:
-		return [last[1], last[2]]
-	var prev: Array = CG_CAMERA[0]
-	for i in range(1, count):
-		var key: Array = CG_CAMERA[i]
-		var k1: float = key[0]
-		if t <= k1:
-			var k0: float = prev[0]
-			var span := maxf(k1 - k0, 0.001)
-			var u := smoothstep(0.0, 1.0, (t - k0) / span)
-			var c0: Vector2 = prev[1]
-			var c1: Vector2 = key[1]
-			var z0: float = prev[2]
-			var z1: float = key[2]
-			return [c0.lerp(c1, u), lerpf(z0, z1, u)]
-		prev = key
-	return [last[1], last[2]]
+	var n := CG_CAMERA.size()
+	var times := PackedFloat32Array()
+	var centers: Array[Vector2] = []
+	var zooms := PackedFloat32Array()
+	for key: Array in CG_CAMERA:
+		times.append(float(key[0]))
+		centers.append(key[1])
+		zooms.append(float(key[2]))
+	if t <= times[0]:
+		return [centers[0], zooms[0]]
+	if t >= times[n - 1]:
+		return [centers[n - 1], zooms[n - 1]]
+	# 落在哪一段
+	var i := 0
+	while i < n - 2 and t > times[i + 1]:
+		i += 1
+	var dt := times[i + 1] - times[i]
+	var u := clampf((t - times[i]) / dt, 0.0, 1.0)
+	# 每段的斜率（x / y / 缩放各一条），切线用相邻两段斜率算，保证过节点时速度连着
+	var sx := PackedFloat32Array()
+	var sy := PackedFloat32Array()
+	var sz := PackedFloat32Array()
+	var zoom_max := zooms[0]
+	for k in n - 1:
+		var d := maxf(times[k + 1] - times[k], 0.001)
+		sx.append((centers[k + 1].x - centers[k].x) / d)
+		sy.append((centers[k + 1].y - centers[k].y) / d)
+		sz.append((zooms[k + 1] - zooms[k]) / d)
+		zoom_max = maxf(zoom_max, zooms[k + 1])
+	var mx0 := 0.0 if i == 0 else _tangent(sx[i - 1], sx[i])
+	var my0 := 0.0 if i == 0 else _tangent(sy[i - 1], sy[i])
+	var mz0 := 0.0 if i == 0 else _tangent(sz[i - 1], sz[i])
+	var mx1 := 0.0 if i + 1 == n - 1 else _tangent(sx[i], sx[i + 1])
+	var my1 := 0.0 if i + 1 == n - 1 else _tangent(sy[i], sy[i + 1])
+	var mz1 := 0.0 if i + 1 == n - 1 else _tangent(sz[i], sz[i + 1])
+	var center := Vector2(
+		_hermite(centers[i].x, centers[i + 1].x, mx0, mx1, dt, u),
+		_hermite(centers[i].y, centers[i + 1].y, my0, my1, dt, u))
+	var zoom := _hermite(zooms[i], zooms[i + 1], mz0, mz1, dt, u)
+	return [center, clampf(zoom, 1.0, zoom_max)]
+
+## 单调三次 Hermite 用的切线：前后两段同向才取平均，方向反转（拐点）或有一段是平的，就收成 0，
+## 并且限制在 3 倍斜率以内——这样既不会在节点上"停一下"，也不会冲过头。
+static func _tangent(prev_slope: float, next_slope: float) -> float:
+	if prev_slope * next_slope <= 0.0:
+		return 0.0
+	var m := (prev_slope + next_slope) * 0.5
+	var limit := 3.0 * minf(absf(prev_slope), absf(next_slope))
+	return clampf(m, -limit, limit)
+
+static func _hermite(p0: float, p1: float, m0: float, m1: float, dt: float, u: float) -> float:
+	var u2 := u * u
+	var u3 := u2 * u
+	return (2.0 * u3 - 3.0 * u2 + 1.0) * p0 + (u3 - 2.0 * u2 + u) * dt * m0 \
+		+ (-2.0 * u3 + 3.0 * u2) * p1 + (u3 - u2) * dt * m1
 
 ## 现在 CG 的缩放（1 = 正常大小）。测试和截图用。
 func cg_zoom() -> float:
@@ -139,6 +180,32 @@ func cg_zoom() -> float:
 ## 运镜一共多长，秒。
 static func camera_length() -> float:
 	return CG_CAMERA[CG_CAMERA.size() - 1][0]
+
+## t 秒时 CG 画在屏幕上的矩形。center 会夹在"刚好铺满屏幕"的范围里：
+## 放大时不会把画面拉出图片边界（露出黑边），正常大小的时候正好居中。
+static func cg_rect(t: float, screen: Vector2, tex_size: Vector2) -> Rect2:
+	var cam := camera_at(t)
+	var center: Vector2 = cam[0]
+	var zoom: float = cam[1]
+	var fit_size := _fit_size(screen, tex_size)
+	var drawn := fit_size * zoom
+	if drawn.x > 0.0 and drawn.y > 0.0:
+		var half := Vector2(0.5 * screen.x / drawn.x, 0.5 * screen.y / drawn.y)
+		if half.x < 0.5:
+			center.x = clampf(center.x, half.x, 1.0 - half.x)
+		else:
+			center.x = 0.5
+		if half.y < 0.5:
+			center.y = clampf(center.y, half.y, 1.0 - half.y)
+		else:
+			center.y = 0.5
+	return Rect2(screen * 0.5 - center * drawn, drawn)
+
+## 按原比例放进屏幕的尺寸（contain）。
+static func _fit_size(screen: Vector2, tex_size: Vector2) -> Vector2:
+	if tex_size.x <= 0.0 or tex_size.y <= 0.0:
+		return screen
+	return tex_size * minf(screen.x / tex_size.x, screen.y / tex_size.y)
 
 func _process(delta: float) -> void:
 	if _leaving:
@@ -236,20 +303,11 @@ func _draw() -> void:
 
 ## CG 按运镜画：zoom=1、中心 (0.5,0.5) 时就是"整张放进屏幕居中"的正常大小。
 func _draw_cg() -> void:
-	var cam := camera_at(_cg_time)
-	var center: Vector2 = cam[0]
-	var zoom: float = cam[1]
-	var normal := _fit(_cg)
-	var drawn := normal.size * zoom
-	draw_texture_rect(_cg, Rect2(size * 0.5 - center * drawn, drawn), false)
+	draw_texture_rect(_cg, cg_rect(_cg_time, size, Vector2(_cg.get_size())), false)
 
-## 整页（或 CG）按原比例放进屏幕，居中。
+## 整页按原比例放进屏幕，居中。
 func _fit(tex: Texture2D) -> Rect2:
-	var src := Vector2(tex.get_size())
-	if src.x <= 0.0 or src.y <= 0.0:
-		return Rect2(Vector2.ZERO, size)
-	var k := minf(size.x / src.x, size.y / src.y)
-	var drawn := src * k
+	var drawn := _fit_size(size, Vector2(tex.get_size()))
 	return Rect2((size - drawn) * 0.5, drawn)
 
 ## 第 page 页第 i 格在当前屏幕上的多边形（PANELS 里是 0..1 比例）。

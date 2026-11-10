@@ -44,19 +44,45 @@ func _ready() -> void:
 	await _frames(2)
 	_check("第三页之后是 CG", comic.progress() == Vector2i(3, 1), _p(comic))
 
-	# CG 运镜：0.8 秒拉近到左下，之后一路推；7.6 秒拉回正常大小。
+	# CG 运镜：推近到左下，然后中、中上、中，最后拉远回正常大小。
 	_check("CG 一开始是正常大小", comic.cg_zoom() < 1.2, "%.2f" % comic.cg_zoom())
 	_click()
 	await _frames(2)
 	_check("CG 刚出来那一下点不掉（防误触）", not comic.finished() and comic.cg_time() < 0.2, "t=%.2f" % comic.cg_time())
 	await _frames(34)
 	_check("0.6 秒：已经在拉近", comic.cg_zoom() > 1.25, "%.2f" % comic.cg_zoom())
-	var early := EndingComic.camera_at(0.8)
-	_check("0.8 秒：左下特写 2.2 倍", is_equal_approx(early[1], 2.2) and (early[0] as Vector2).x < 0.35, "%s" % [early])
-	var up := EndingComic.camera_at(4.0)
-	_check("4 秒：中上（灯泡）", is_equal_approx(up[1], 2.2) and (up[0] as Vector2).y < 0.35, "%s" % [up])
+
+	var keys := EndingComic.CG_CAMERA
+	var t_left: float = keys[1][0]
+	var t_up: float = keys[4][0]
+	var left := EndingComic.camera_at(t_left)
+	_check("%.1f 秒：左下机位" % t_left, (left[0] as Vector2).x < 0.35 and (left[0] as Vector2).y > 0.6, "%s" % [left])
+	var up := EndingComic.camera_at(t_up)
+	_check("%.1f 秒：中上（灯泡）" % t_up, (up[0] as Vector2).y < 0.35 and (up[1] as float) > 2.5, "%s" % [up])
 	var normal := EndingComic.camera_at(EndingComic.camera_length())
 	_check("结尾：正常大小、正中", is_equal_approx(normal[1], 1.0) and (normal[0] as Vector2) == Vector2(0.5, 0.5), "%s" % [normal])
+
+	# 曲线是连续的：过每个机位时画面都还在动（平移收住的时候推拉还在推），不会一顿一顿。
+	var dead := -1.0
+	for key: Array in EndingComic.CG_CAMERA:
+		var kt: float = key[0]
+		if kt <= 0.01 or kt >= EndingComic.camera_length() - 0.01:
+			continue
+		var a := EndingComic.camera_at(kt - 0.05)
+		var b := EndingComic.camera_at(kt + 0.05)
+		var pan := ((b[0] as Vector2) - (a[0] as Vector2)).length() / 0.1
+		var dzoom := absf(float(b[1]) - float(a[1])) / 0.1
+		if pan * float(a[1]) + dzoom * 0.6 < 0.08:
+			dead = kt
+			break
+	_check("每个机位上都还在动（没有完全停住的一帧）", dead < 0.0, "t=%.2f" % dead)
+	var prev: Vector2 = EndingComic.camera_at(0.0)[0]
+	var jump := 0.0
+	for i in 234:
+		var now: Vector2 = EndingComic.camera_at(float(i + 1) / 30.0)[0]
+		jump = maxf(jump, (now - prev).length())
+		prev = now
+	_check("逐帧位移没有跳变", jump < 0.02, "最大 %.4f" % jump)
 
 	_click()
 	await _frames(2)
