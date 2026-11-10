@@ -37,6 +37,17 @@ const FLICKER := 0.4
 const SUCK_TIME := 0.75
 const SHOCK_AT := 7.4
 const STARS := 70
+## 小星越飞越远：城市（连同还没散完的噬光者）往地平线上的消失点缩小，地平线往下沉一点（小星在往上飞）。
+## 缩完就停在远景大小，循环段里不再变（循环段只有小星在动）。
+const RECEDE_FROM := 7.8
+const RECEDE_TO := 10.0
+const FAR_SCALE := 0.4
+## 消失点在地平线上偏右（小星往左上飞，城市留在右下方的身后）。
+const VANISH_X := 0.6
+## 地平线下沉多少（画布高度的比例）。
+const RISE := 0.05
+## 远处的城市蒙上一层夜色（往天色靠）。
+const FAR_HAZE := 0.35
 
 var ending: EndingNormal
 var time := 0.0
@@ -46,33 +57,57 @@ var _stars: Array[Vector3] = []
 var _built_for := Vector2.ZERO
 var _boss: Sprite2D
 var _halo: Array[Sprite2D] = []
+## 噬光者和前景层挂在它下面：城市往远处缩时它们一起缩。
+var _far: Node2D
 ## 画在噬光者上面的一层：被吸走的光点、它身上的眼睛、冲击波、消散的碎屑。
 var _front: Node2D
 
 func _ready() -> void:
 	var tex := load(ART_BOSS) as Texture2D
+	_far = Node2D.new()
+	add_child(_far)
 	# 剪影扩张：身后两层同一张图、压成近黑、放大一点，像一圈往外渗的暗。
 	for k in 2:
 		var h := Sprite2D.new()
 		h.texture = tex
 		h.offset = Vector2(0.0, -BOSS_H * 0.5)
 		h.modulate = Color(0.02, 0.0, 0.05, 0.55 - 0.25 * k)
-		add_child(h)
+		_far.add_child(h)
 		_halo.append(h)
 	_boss = Sprite2D.new()
 	_boss.texture = tex
 	# 锚点在底部正中：长大时脚底不动，往上、往两边长。
 	_boss.offset = Vector2(0.0, -BOSS_H * 0.5)
-	add_child(_boss)
+	_far.add_child(_boss)
 	_front = Node2D.new()
 	_front.draw.connect(_draw_front)
-	add_child(_front)
+	_far.add_child(_front)
 
 func _canvas() -> Vector2:
 	return ending.canvas_size() if ending != null else Vector2(640, 360)
 
+## 城市原本的地平线（城市坐标）。
 func ground_y() -> float:
 	return floorf(_canvas().y * 0.86)
+
+## 远去的进度 0..1（easeInOut），循环段里恒为 1。
+static func recede(t: float) -> float:
+	return _ease_in_out((t - RECEDE_FROM) / (RECEDE_TO - RECEDE_FROM))
+
+## 城市的大小倍率：1 → FAR_SCALE。
+static func city_scale(t: float) -> float:
+	return lerpf(1.0, FAR_SCALE, recede(t))
+
+## 画面上的地平线：随着小星往上飞慢慢往下沉。
+func horizon(t: float) -> float:
+	return floorf(ground_y() + _canvas().y * RISE * recede(t))
+
+## 城市坐标 → 画面坐标：以地平线上的消失点为中心缩小，再跟着地平线下沉。
+func city_xform(t: float) -> Transform2D:
+	var f := city_scale(t)
+	var v0 := Vector2(_canvas().x * VANISH_X, ground_y())
+	var v1 := Vector2(v0.x, horizon(t))
+	return Transform2D(0.0, Vector2(f, f), 0.0, v1 - v0 * f)
 
 ## 小星出场的地方：城市中心偏下。
 func spawn_point() -> Vector2:
@@ -181,8 +216,10 @@ func sync_boss() -> void:
 func _draw() -> void:
 	_build()
 	var s := _canvas()
-	var g := ground_y()
 	var t := time
+	var g := horizon(t)
+	var xf := city_xform(t)
+	_far.transform = xf
 	var lit := _lit_fraction(t)
 	# 天空：上深下浅，城里亮着灯时地平线上有一层暖雾，灯灭一盏雾薄一分。
 	var bands := 12
@@ -198,10 +235,14 @@ func _draw() -> void:
 	for st in _stars:
 		var a := 0.25 + 0.2 * sin(TAU * ph + st.z)
 		draw_rect(Rect2(Vector2(st.x, st.y).floor(), Vector2.ONE), Color(1, 1, 1, a))
+	# 城市（和预兆的眼睛）按远去的倍率画；远了以后整体往夜色里褪一点
+	draw_set_transform_matrix(xf)
+	var haze := FAR_HAZE * recede(t)
 	for bld in _buildings:
-		_draw_building(bld, t)
+		_draw_building(bld, t, haze)
 	# 噬光者预兆：楼群里亮起一对红眼，慢慢睁开、眨一下；长出来以后由身体自己的眼睛接手
 	_draw_omen(t)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 	draw_rect(Rect2(0.0, g, s.x, s.y - g), GROUND)
 	for x in range(0, int(s.x), 34):
 		draw_rect(Rect2(x, g + 3.0, 30.0, 1.0), Color(0.07, 0.065, 0.10))
@@ -225,14 +266,15 @@ func _lit_fraction(t: float) -> float:
 	return float(n) / _buildings.size()
 
 ## 一栋楼：灭灯前 FLICKER 秒灯开始乱闪，灭了之后楼体 0.3 秒内暗下去。
-func _draw_building(bld: Dictionary, t: float) -> void:
+func _draw_building(bld: Dictionary, t: float, haze := 0.0) -> void:
 	var rect: Rect2 = bld["rect"]
 	var out: float = bld["out"]
 	var dead := smoothstep(out, out + 0.3, t)
 	var base := BUILDING_FAR if bld["far"] else BUILDING
-	draw_rect(rect, base.lerp(BUILDING_DEAD, dead))
-	# 楼顶一道细边（天空的余光）：灯全灭了也认得出这是一座城
-	draw_rect(Rect2(rect.position, Vector2(rect.size.x, 1.0)), Color(0.11, 0.12, 0.2, 0.9))
+	draw_rect(rect, base.lerp(BUILDING_DEAD, dead).lerp(SKY_LOW, haze))
+	# 楼顶一道细边（天空的余光）：灯全灭了也认得出这是一座城。缩小以后至少 1 个画面像素。
+	var edge := maxf(1.0, 1.0 / city_scale(t))
+	draw_rect(Rect2(rect.position, Vector2(rect.size.x, edge)), Color(0.11, 0.12, 0.2, 0.9).lerp(SKY_LOW, haze * 0.5))
 	# 楼顶天线和红灯
 	if bld["beacon"]:
 		var top := Vector2(floorf(rect.get_center().x), rect.position.y)

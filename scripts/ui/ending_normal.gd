@@ -10,14 +10,15 @@ extends Control
 ##   4.0–7.6  噬光者从底部正中长出来（easeInOut），城市由近到远一栋栋变暗：灯先闪、再灭、
 ##            光点被吸进噬光者；7.4 前后是高潮：震动、暗角、冲击波（不全黑，小星和拖尾一直看得见）
 ##   7.6–8.4  噬光者缩回去、完全消失
-##   8.4–10.0 循环段：无光的城市 + 小星原地"伪飞行"（自转、往后飘的拖尾和流光），之后一直循环这 1.6 秒
+##   7.8–10.0 小星越飞越远：无光的城市往地平线上的消失点缩到 40%，地平线往下沉一点（easeInOut）
+##   10.0–11.6 循环段：远处无光的城市 + 小星原地"伪飞行"（自转、往后飘的拖尾和流光），之后一直循环这 1.6 秒
 ## 循环段里的每样东西都是时间的周期函数（周期整除 1.6 秒），所以首尾无缝。
 ##
 ## 像素风：整段画在半分辨率的 SubViewport 里，用 Nearest 放大 2 倍；贴图用游戏里的原图
 ## （小星 star_body.png、噬光者 devourer.png），城市剪影没有现成素材，用标题页的色板程序画（见 EndingWorld 的 TODO）。
 
 const PIXEL := 2
-const LOOP_START := 8.4
+const LOOP_START := 10.0
 const LOOP_LEN := 1.6
 ## 小星最后停的位置（屏幕比例）和离屏幕边至少多远（半分辨率像素，= 24 屏幕像素）。
 const ANCHOR := Vector2(0.08, 0.12)
@@ -204,7 +205,7 @@ static func spin(t: float) -> float:
 	var at_arrive := a + SPIN_START * ramp + (SPIN_LOOP - SPIN_START) * ramp * 0.5
 	return at_arrive + SPIN_LOOP * (t - ARRIVE)
 
-## 循环段的相位 0..1（4 秒起就按它走，8.4 秒起整段循环）。
+## 循环段的相位 0..1（4 秒起就按它走，10 秒起整段循环）。
 static func phase(t: float) -> float:
 	return fposmod((t - LOOP_START) / LOOP_LEN, 1.0)
 
