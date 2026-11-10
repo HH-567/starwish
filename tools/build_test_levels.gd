@@ -265,7 +265,7 @@ func _build_area(root: Node, area: Node2D, tiles: TileSet, map_path: String, kin
 		if kind == Kind.LANE and PARTS.has(ch):
 			parts.append([ch, rect])
 			continue
-		var node := _place(root, entities, ch, rect, kind, npcs, tier)
+		var node := _place(root, entities, ch, rect, kind, npcs, tier, _checkpoint_name(marks, cell) if ch == "K" else "")
 		if node is HelpPoint:
 			helpers[node.role] = node
 		elif node != null and pairs.has(ch):
@@ -333,7 +333,16 @@ func _center(rect: Rect2i) -> Vector2:
 func _instance(path: String) -> Node2D:
 	return (load(path) as PackedScene).instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE) as Node2D
 
-func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs: Dictionary, tier := 1) -> Node2D:
+## 检查点按从左到右编号：Checkpoint、Checkpoint2……存档记的是节点路径，
+## 后加的检查点不管摆在哪一行，都不会把原来那个的名字（玩家存档里的 id）顶掉——只要它在原来那个右边。
+func _checkpoint_name(marks: Dictionary, cell: Vector2i) -> String:
+	var order := 1
+	for c: Vector2i in marks:
+		if marks[c] == "K" and (c.x < cell.x or (c.x == cell.x and c.y < cell.y)):
+			order += 1
+	return "Checkpoint" if order == 1 else "Checkpoint%d" % order
+
+func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs: Dictionary, tier := 1, node_name := "") -> Node2D:
 	if ROLES.has(ch):
 		if kind == Kind.LEVEL:
 			return _place_npc(root, parent, ch, rect)
@@ -363,6 +372,8 @@ func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs
 			# 第几章的影鬼：越往后越狠（瞄准更快、冷却更短，第三章起双发）
 			node.set("tier", tier)
 	node.position = _center(rect)
+	if node_name != "":
+		node.name = node_name
 	_add(root, parent, node)
 	return node
 
