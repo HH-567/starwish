@@ -53,6 +53,17 @@ foreach ($t in $tests) { & $G --headless --path . --fixed-fps 60 "res://tests/$t
 
 判读：测试输出 `RESULT PASS，失败 0 项` 且退出码 0 才算过。
 
+### Linux / WSL（2026-11-10 起工程在 `~/gamejam/starwish2`）
+
+```bash
+source tools/dev.sh        # 设好 G 和 XDG_DATA_HOME（Linux 上的存档隔离，等价于 APPDATA）
+gd_import; gd_build; gd_test test_ch0; gd_all; gd_export
+gd_shots ch1               # 截图巡游（xvfb-run），帧在 .tmp_build/shots/ch1/
+```
+
+Python 工具要 PIL/numpy：系统 python 没有 pip，用 `~/.local/bin/python3.11 -m venv .tmp_build/venv`
+再 `.tmp_build/venv/bin/pip install pillow numpy`。
+
 ---
 
 ## 4. 目录结构
@@ -103,14 +114,20 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 
 ### 地图字符表（常用）
 
+（完整图例以 `tools/build_test_levels.gd` 文件头为准，2026-11-10 按它校对过）
+
 | 字符 | 含义 | 字符 | 含义 |
 |---|---|---|---|
 | `#` | 墙 | `.` | 空地 |
-| `@` | 出生点 | `E` | 出口 |
+| `@` | 边界墙（阶段 5 也撞不碎） | `S` | 出生点 |
+| `E` | 出口 | `K` | 检查点（多个时从左到右叫 Checkpoint、Checkpoint2…） |
 | `*` | 补给星屑 | `'` | 面包屑 |
-| `w g D a G M m L p q c Z` | 各职业 NPC | `n` | 无名 NPC |
-| `-` `\|` `/` `\` | **镜子**（四个方向） | `H` | 栅栏（挡人透光） |
-| `I` | 铁门（锁匠） | `T` | 矿工隧道 |
+| `w g d/D a G M m L p q c Z` | 各职业 NPC | `n` | 无名 NPC |
+| `-` `\|` `/` `\` | **镜子**（横、竖、两种斜） | `H` | 栅栏（挡人透光） |
+| `I` | 铁门（锁匠） | `T` | 矿工隧道（赛道里） |
+| `C` | 裂纹墙 | `P` | 软垫 |
+| `V` | 影藤 | `x` | 影鬼 |
+| `+` | 流星 | `=` | 黑洞 |
 | `>` `<` `^` `v` | 加速带（四个方向） | `A` `B` | 虫洞两端 |
 
 > ⚠️ 最容易弄错：`-` 是**镜子**不是栅栏。要「挡人不挡光」用 `H`。
@@ -168,6 +185,9 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 - 敌人命中定格 0.06s 闪白，再炸开
 - 连击：0.9s 内连杀，环变大、碎片变多、音高升高
 - 撞墙/撞碎墙/死亡/boss 分级震动（`follow_camera.SHAKE_BY_HIT`）
+- 2026-11-10 加：**定帧**（`HITSTOP_BY_HIT`：受伤 0.07s、碎裂纹墙 0.06s…，反弹不定帧，两次至少隔 0.25s）、
+  镜头朝撞击方向**顿一下**（`KICK_BY_HIT`）、星体沿墙面法线**压扁**再弹回 / 高速时沿运动方向拉长、
+  弹墙时墙面溅出这一档颜色的**火花**、切换光模式时一圈闪光。都只是画面，不改碰撞结果
 
 ### 7.5 难度（局外可调）
 | 档位 | 变化 |
@@ -200,6 +220,12 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 10. **测试里传送玩家**要落在空地上，否则卡进墙里导致测试挂起（曾卡住 5 分钟）。
 11. **标题/面板必须作为场景根**（Control）才有正确尺寸；用 Node2D 包一层会得到 0 尺寸、截图全黑。
 12. **`Audio` 在测试里默认 `locked`**：要断言音量先 `Audio.locked = false`。
+13. **改 `Engine.time_scale` 的那一帧**，`delta` 还是按旧倍率算的：用 `delta / time_scale` 当真实时间会算出半秒，
+    定帧当帧就结束了。定帧按物理帧数计时（`1 / physics_ticks_per_second`）。
+14. **子节点画在父节点 `_draw` 上面**：想把东西（影鬼的眼睛）画在贴图上面，贴图设 `show_behind_parent = true`。
+15. **`data/tiles.tres` 每次构建都重新生成**（图集来自 `tools/tile_art.py`）：别在编辑器里改它。
+16. **自己发光的东西开了阴影/带遮光体时会落在自己的影子里**：软垫、墙都把遮光体往里缩了一圈，边才照得亮。
+17. **从 Windows 拷过来的文件带 `xxx:Zone.Identifier`**：已经 gitignore；`.git` 里的会让 `git log --all` 报错，删掉即可。
 
 ---
 
@@ -249,17 +275,31 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 # 然后从 .tmp_build/shots/*.png 里挑帧
 ```
 
+2026-11-10 新增：
+- `tools/shots_tour.tscn -- <章>`：自动把小星放到这一章每个小人/镜子/影鬼/机关/出口旁边各录一组帧（不用手写坐标），
+  镜头范围去掉了，小星永远在画面正中
+- `tools/shots_feel.tscn`：用几种速度朝墙发射，录撞墙那几帧，看压扁/火花/顿挫
+- `tools/level_report.py`：每章主路线俯视图 + 路线长度、直道、小人离路线多远、补给密度（`.tmp_build/report_<章>.png`）
+- `tools/check_maps.py`：按小星半径查通行（ch1 那一遍现在把栅栏当实体）
+
 ---
 
 ## 11. 美术与音频
 
 ### 美术
 - 管线：豆包出图 → 抠图/去底 → 放到 `assets/art/<类别>/` → `--import`。
+- 程序生成的部分（改脚本重跑，再 `--import`）：
+  - `tools/tile_art.py`：墙 / 边界墙 / 地面图集，郊区（ch0–ch2）和城市（ch3、ch4）两套，16 个四邻掩码 × 4 个变体。
+    墙沿高光 + 遮光体内缩（`scripts/levels/wall_tiles.gd`）让光照亮墙沿；地面挨墙的边有接触阴影
+  - `tools/sprite_art.py`：影鬼三张（原 `shade_aim.png` 没去底，是个黑方块）
+  - 出口、黑洞、流星落地、软垫是 `_draw` 程序画的
 - 代码里都是 `if ResourceLoader.exists(ART)`，**没有贴图就退化成几何绘制**，所以删图不会崩，只会变丑。
 - 风格：暗色剪影 + 暖光，人物只要轮廓能看出职业。
 
 ### 音频
-- `audio/*.wav`：10 个音效（44.1k 立体声）。
+- `audio/*.wav`：原来 10 个 + `tools/sfx_synth.py` 合成的 22 个（清单见 `docs/audio-brief.md`）。
+  `Audio.play`（普通）、`Audio.play_at`（带位置，1100 px 外不播）、`Audio.hold`（循环音，每帧续命，不续就淡出）。
+  合成音效**只看过波形和频谱、没有人耳听过**，第一次跑游戏请先听一遍。
 - `audio/bgm/*.wav`：9 首**本地合成的占位曲**（title / ch0..ch4 / chase / ending_normal / ending_hidden）。
 - 替换方式：把 Suno 生成的曲子按同名覆盖（`.ogg` 优先于 `.wav`），**代码不用改**。
   `Audio.play_bgm` 会依次找 `.ogg` → `.wav`。
@@ -275,7 +315,8 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 5. **`test_finale` 里迷宫被抹平**（`Game.debug_flat_maze`）：真实迷宫由 `probe_maze` 验。
    如果要让自动机跑真迷宫，需要先写一个更聪明的导航器（试过三轮都失败，见 `boss-maze-status.md`）。
 6. **标题页视觉状态没有自动截图**：用 Node2D 包场景会得到 0 尺寸，需要把标题作为场景根才能截。
-7. **`assets/art/items/star_bloom.png` 未使用**（有方块伪影，已弃用）。
+7. **`assets/art/items/star_bloom.png` 未使用**（有方块伪影，已弃用）。`items/exit.png`、`hazards/blackhole.png` 也不再用（改程序画）。
+8. **散射光开阴影后 Web 上的帧率没实测**（2026-11-10）：本地只有软件渲染。卡的话先看 `star_light.gd` 的散射光阴影和出口的灯。
 
 ---
 
