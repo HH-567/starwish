@@ -10,7 +10,7 @@ extends Node
 ##   - | 玻璃（横、竖，相连的合成一块）  / \ 斜 45° 的玻璃，一格一块，正好封住一个拐角
 ##   小人（一格一个）：n 普通人  w 守夜人  g 园丁  d 医生（照不到，等邮差）  a 画家  G 向导  m 矿工
 ##     L 锁匠  M 邮差（藏着）  p 乐手  q 听众（每个 p 和离它最近的 q 结伴）  c 钟表匠  Z 科学家（藏着）
-##   * 小星星  K 检查点  A B 虫洞两端（每张图一对）  + 流星  = 黑洞（P2）
+##   * 小星星（困难模式的硬核补给用 !，长夜/永夜级才出现，且不会被"只留敌人附近"收走）  K 检查点  A B 虫洞两端（每张图一对）  + 流星  = 黑洞（P2）
 ##   ' 路标：一点冷白色的小光点，只用来引路（教学关铺路用）
 ## 回程赛道（*_lane.txt，生成在关卡区下面，从右往左跑）：
 ##   R 进入点（最右一列，记在格子右边缘）  X 离开点（最左一列，记在格子左边缘），两个在同一行
@@ -69,6 +69,7 @@ const SCENES := {
 	"I": "res://scenes/entities/iron_door.tscn",
 	"E": "res://scenes/entities/exit.tscn",
 	"*": "res://scenes/entities/star_shard.tscn",
+	"!": "res://scenes/entities/star_shard.tscn",
 	"K": "res://scenes/entities/checkpoint.tscn",
 	">": STRIP_SCENE, "<": STRIP_SCENE, "^": STRIP_SCENE, "v": STRIP_SCENE,
 	"-": MIRROR_SCENE, "|": MIRROR_SCENE, "/": MIRROR_SCENE, "\\": MIRROR_SCENE,
@@ -88,7 +89,7 @@ const MARKERS := {"S": ["PlayerStart", 0.5], "Q": ["BossStart", 0.5], "R": ["Ent
 const PARTS := {"l": "watchman", "f": "gardener", "T": "miner"}
 const STRIP_ANGLE := {">": 0.0, "v": PI / 2.0, "<": PI, "^": -PI / 2.0}
 ## 这些一格一个实体，不和相邻的同种格子合并。
-const SINGLE := "/\\*Kl+='x"
+const SINGLE := "/\\*Kl+='x!"
 
 func _ready() -> void:
 	var tiles := _load_or_make_tileset()
@@ -371,6 +372,9 @@ func _place(root: Node, parent: Node, ch: String, rect: Rect2i, kind: Kind, npcs
 		"x":
 			# 第几章的影鬼：越往后越狠（瞄准更快、冷却更短，第三章起双发）
 			node.set("tier", tier)
+		"!":
+			# 困难模式专用补给（普通模式里自己消失）
+			node.set("hard_only", true)
 	node.position = _center(rect)
 	if node_name != "":
 		node.name = node_name

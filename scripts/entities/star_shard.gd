@@ -8,6 +8,10 @@ const RADIUS := 12.0
 ## 美术图：24×24 的四角星芒，有图就用图。
 const ART := "res://assets/art/items/shard.png"
 
+## 困难模式（长夜级/永夜级）才出现的补给：放在摸黑就过不去的地方（邮差的房间…）。
+## 它不受"只留敌人附近"那条规则的约束——否则刚放上来就被收走了。
+@export var hard_only := false
+
 var _art: Sprite2D
 var _t := 0.0
 
@@ -20,8 +24,12 @@ func _ready() -> void:
 	monitorable = false
 	Shapes.add_circle(self, RADIUS)
 	body_entered.connect(_on_body_entered)
-	# 长夜级：只保留"敌人身后"的补给，其他地方的小星星收走
-	if Game.keeps_shards_only_near_enemies():
+	# 困难模式专用补给：只在长夜级/永夜级出现；普通模式的关卡里没有它。
+	if hard_only and not Game.keeps_shards_only_near_enemies():
+		queue_free()
+		return
+	# 长夜级：只保留"敌人身后"的补给，其他地方的小星星收走（硬核补给不算）
+	if Game.keeps_shards_only_near_enemies() and not hard_only:
 		call_deferred("_maybe_drop")
 	_t = randf() * TAU
 	if ResourceLoader.exists(ART):
