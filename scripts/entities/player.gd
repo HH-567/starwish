@@ -290,10 +290,16 @@ func _resolve_hit(col: KinematicCollision2D) -> Vector2:
 	if s == 5 and not _is_unbreakable(col):
 		var loss := t.break_speed_loss if layer & Layers.CRACKED else t.smash_speed_loss
 		_smash(col)
-		velocity *= 1.0 - loss
+		# 从科学家的虫洞掉头冲刺时"速度不变"（docs/state-machines.md 第 12 节）：
+		# 撞碎的墙不再减速，否则冲两道墙就掉出阶段 5，撞上噬光者也撞不碎。
+		if not charged:
+			velocity *= 1.0 - loss
+			_impact(0.22, col, 0)
+			_hit(&"smash")
+			return rest * (1.0 - loss)
 		_impact(0.22, col, 0)
 		_hit(&"smash")
-		return rest * (1.0 - loss)
+		return rest
 	if layer & Layers.PAD:
 		velocity = Vector2.ZERO
 		_impact(0.5, col, 0)

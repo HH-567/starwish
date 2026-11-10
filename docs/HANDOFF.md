@@ -8,7 +8,7 @@
 ## 1. 一句话现状
 
 Godot 4.7.2 做的 2D 像素风叙事跑酷/潜行游戏，五个章节 + 终章 boss 追逐 + 双结局。
-**26 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
+**28 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
 
 ---
 
@@ -134,7 +134,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 
 ---
 
-## 6. 测试清单（26 项）
+## 6. 测试清单（28 项）
 
 | 测试 | 覆盖 |
 |---|---|
@@ -157,6 +157,8 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 | `test_finale` | 终章追逐、加速带、双结局（迷宫在此测试里被抹平） |
 | `test_ending_normal` | 普通结局动画的时间线、循环段、Esc 回标题 |
 | `test_ending_comic` | 真结局连环画：3 秒一格、点击立刻一格并重置、四格后翻页、三页后 CG、CG 点击回标题 |
+| `test_turnaround` | 真结局最后一棒：从科学家的虫洞掉头冲刺，必须撞碎噬光者并进连环画（F6 那条路） |
+| `test_difficulty_enemies` | 永夜级多出来的影鬼落在空地上，不压墙 |
 | `test_title_sway` | 标题页鼠标视差：偏哪边往反方向挪、移出窗口回中、没人动鼠标时不晃 |
 | `test_lanes` | 赛道段拼接 |
 | `test_stage` | 速度阶段阈值 |
@@ -182,6 +184,8 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
   - 救了锁匠 → 顶部直线捷径 3 个拐弯（铁门走近自己开）。
 - 加速带由 NPC 在中途部署；回程铺灯演出。
 - 双结局：撞碎噬光者 = 隐藏结局（真结局）；被追上 = 普通结局。
+- 掉头冲刺（2026-11-10 修）：从科学家的虫洞出来以后**直奔噬光者**（不看出口朝向），冲刺期间**撞碎墙不减速**。
+  之前出口朝向和噬光者不在一条走廊上，冲出去是背对着它跑，F6 进终章根本撞不碎——回归测试 `tests/test_turnaround`。
 - 真结局（2026-11-10）：撞碎后播 `scenes/ui/ending_comic.tscn`——三页四格漫画 + 一张 CG。
   纯黑底。每页一开始只露第一格，其余纯黑；每 3 秒自动多露一格，点一下立刻多露一格并重置计时；
   四格齐了再点翻页；三页之后是 CG。CG 有约 8 秒运镜：推近到左下人群 → 中 → 中上灯泡（推到 3 倍）→ 中 →
@@ -208,7 +212,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 |---|---|
 | 微光级 | 现在这样 |
 | 长夜级 | 补给只留敌人 300px 内的；救人不再回光 |
-| 永夜级 | 光衰减 ×1.7；关卡加载时每只影鬼旁多一只 |
+| 永夜级 | 光衰减 ×1.7；关卡加载时每只影鬼旁多一只（只在空位上放，附近放不下就不放，不会摆进墙里） |
 
 ### 7.6 UI（几乎全图形，不写字）
 - 标题：小星绕椭圆轨道飞（先上后下转弯）+ 左郊区右城市背景；
@@ -303,6 +307,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 - `tools/shots_ending_comic.tscn`：真结局连环画的几个状态（第一页第一格 / 第二格 / 四格齐 / 第二页 / CG）
 - `tools/comic_panels.py`：从四格漫画量出四格的多边形（打印成 `ending_comic.gd` 里的 `PANELS`），
   并把四格以外的部分刷黑生成 `N_black.png`（换图后重跑）
+- `tools/probe_finale.tscn`：F6 进终章后把科学家/虫洞/逃离点/帮助点/加速带的位置全打出来（查"撞不到 boss"这类问题用）
 - `tools/level_report.py`：每章主路线俯视图 + 路线长度、直道、小人离路线多远、补给密度（`.tmp_build/report_<章>.png`）
 - `tools/check_maps.py`：按小星半径查通行（ch1 那一遍现在把栅栏当实体）
 

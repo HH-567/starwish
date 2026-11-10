@@ -68,27 +68,69 @@ func _ready() -> void:
 
 ## 给一个区上色：墙砖和实体都乘上这个色调（实体里发光的会跟着偏，正好表达冷/暖）。
 ## 难度：永夜级在每只影鬼旁边多放一只，长夜级不动。
+## 多出来的那只必须站在空地上：影鬼自己不吃碰撞，但摆进墙里就变成"卡在墙上的一只鬼"，
+## 玩家打不到也绕不开。找不到空位就干脆不放（宁可少一只）。
 func _apply_difficulty() -> void:
 	if not Game.extra_enemies():
 		return
-	var walls := get_node_or_null(^"Walls") as TileMapLayer
+	var level := get_node_or_null(^"Level") as Node2D
+	var walls := level.get_node_or_null(^"Walls") as TileMapLayer if level != null else null
 	for e in find_children("*", "Enemy", true, false):
 		var src := e as Enemy
 		if src == null:
 			continue
-		for offset: Vector2 in [Vector2(0, 96), Vector2(96, 0), Vector2(0, -96), Vector2(-96, 0)]:
-			var at := src.global_position + offset
-			if walls != null:
-				var cell := walls.local_to_map(walls.to_local(at))
-				if walls.get_cell_tile_data(cell) != null:
-					continue
-			var clone := src.duplicate() as Enemy
-			if clone == null:
-				break
-			src.get_parent().add_child(clone)
-			clone.global_position = at
-			clone.add_to_group(&"enemy")
-			break
+		var at := _enemy_spot(src, walls)
+		if is_nan(at.x):
+			continue
+		var clone := src.duplicate() as Enemy
+		if clone == null:
+			continue
+		src.get_parent().add_child(clone)
+		clone.global_position = at
+		clone.add_to_group(&"enemy")
+
+## 在影鬼旁边找一块能站的地方：整只（半径 + 余量）都不压墙、在地图范围内，
+## 而且从原位过去是一条直线（不会隔着墙跳到别的走廊）。找不到返回 (NAN, NAN)。
+func _enemy_spot(src: Enemy, walls: TileMapLayer) -> Vector2:
+	if walls == null:
+		return src.global_position + Vector2(0.0, 96.0)
+	var from := walls.to_local(src.global_position)
+	var radius := src.radius + 8.0
+	var dirs: Array[Vector2] = [
+		Vector2.RIGHT, Vector2.LEFT, Vector2.DOWN, Vector2.UP,
+		Vector2(1, 1).normalized(), Vector2(-1, 1).normalized(),
+		Vector2(1, -1).normalized(), Vector2(-1, -1).normalized(),
+	]
+	for dist: float in [96.0, 64.0]:
+		for dir: Vector2 in dirs:
+			var at := from + dir * dist
+			if not _cell_free(walls, at, radius):
+				continue
+			if not _straight_free(walls, from, at):
+				continue
+			return walls.to_global(at)
+	return Vector2(NAN, NAN)
+
+## 这个点（含半径一圈）是不是全在空地上。
+func _cell_free(walls: TileMapLayer, at: Vector2, radius: float) -> bool:
+	var used := walls.get_used_rect()
+	for i in 9:
+		var p := at if i == 0 else at + Vector2.from_angle(TAU * float(i - 1) / 8.0) * radius
+		var cell := walls.local_to_map(p)
+		if not used.has_point(cell):
+			return false
+		if walls.get_cell_tile_data(cell) != null:
+			return false
+	return true
+
+## 两点之间这条线上有没有墙。
+func _straight_free(walls: TileMapLayer, from: Vector2, to: Vector2) -> bool:
+	var steps := maxi(int(from.distance_to(to) / 8.0), 1)
+	for i in steps + 1:
+		var p := from.lerp(to, float(i) / float(steps))
+		if walls.get_cell_tile_data(walls.local_to_map(p)) != null:
+			return false
+	return true
 
 func _apply_tint(area: Node2D, c: Color) -> void:
 	if area == null or c == Color.WHITE:

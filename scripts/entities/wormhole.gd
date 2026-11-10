@@ -88,6 +88,13 @@ func _on_entered(body: Node2D, exit: Area2D) -> void:
 		dir = player.velocity / speed
 	_cool_left = Player.WARP_TIME + Game.tuning.warp_cooldown
 	if charge:
+		# 科学家放的那个虫洞是"掉头冲回去"：出来以后直奔噬光者，不看出口朝向。
+		# 光靠出口朝向的话，出口和噬光者不在一条走廊上就永远撞不上（F6 进终章就能复现）。
+		var boss := get_tree().get_first_node_in_group(&"boss") as Boss
+		if boss != null:
+			var to_boss := boss.global_position - exit.global_position
+			if to_boss.length() > 1.0:
+				dir = to_boss.normalized()
 		player.charge()
 	player.warp(exit.global_position + dir * PUSH, dir * speed)
 
