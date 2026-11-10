@@ -2,10 +2,30 @@ class_name Title
 extends Control
 ## 标题：新的旅程 / 继续（有存档才出现）。已有进度时，"新的旅程"要按两次，免得误按把存档清掉。
 ## 背景是慢慢闪的星空，标题上方一颗发光的小星。
+## 鼠标在窗口里移动时，画面按远近分层错开一点再弹回来（视差 + 弹簧回弹）；
+## 没人动鼠标（纯键盘、触屏、headless）时画面完全静止。
 
 const BG := Color("070b18")
 const STAR := Color("ffd75a")
 const SUB := Color("b9c8ff")
+## 视差：鼠标推到屏幕角落时这一层移动多少像素。越靠前（越近）的层挪得越多。
+const SWAY_STAR_DUST := 8.0
+const SWAY_SKY := 17.0
+const SWAY_GROUND := 25.0
+const SWAY_BOSS := 14.0
+const SWAY_PROPS := 36.0
+const SWAY_FLIGHT := 21.0
+## 弹簧：刚度越大跟得越快，阻尼略小会回弹一下（"晃"的那一下）。
+const SWAY_STIFFNESS := 46.0
+const SWAY_DAMPING := 6.5
+## 鼠标划得越快，额外多带一下画面（菜单按钮都在正中，只靠位置几乎看不出晃）。
+const SWAY_KICK := 8.0
+## 一次鼠标事件最多按划了多远算（0..1 的屏幕比例），防止瞬移把画面甩出去。
+const SWAY_KICK_STEP := 0.25
+## 弹簧最多能推到的幅度（1 = 屏幕角落），留点余量给回弹。
+const SWAY_LIMIT := 1.35
+## 底色和地面往外多画这么多，某层挪开时不会露出边。
+const SWAY_PAD := 56.0
 
 var _stars: Array[Vector3] = []
 var _t := 0.0
@@ -16,6 +36,14 @@ var _confirm := false
 var _lit := false
 ## 0 → 1：标题停留期间光线慢慢升起来。
 var _dawn := 0.0
+## 鼠标离屏幕中心多远（-1..1，两轴）。各层的位移 = 它 × 这一层的深度。
+var _sway := Vector2.ZERO
+var _sway_v := Vector2.ZERO
+## 鼠标此刻的位置（同样 -1..1）；弹簧朝它收。
+var _sway_target := Vector2.ZERO
+## 上一次鼠标位置（视口坐标）。用来算"这一下划了多远"，给弹簧加冲量。
+var _mouse_last := Vector2.ZERO
+var _mouse_seen := false
 
 func _ready() -> void:
 	Game.enter_title()
@@ -60,6 +88,7 @@ func _process(delta: float) -> void:
 	_dawn = minf(_dawn + (delta if _lit else -delta) * 0.35, 1.0)
 	_dawn = maxf(_dawn, 0.0)
 	_t += delta
+	_step_sway(delta)
 	queue_redraw()
 
 func _on_new() -> void:
@@ -86,12 +115,69 @@ func _spacer(height: float) -> Control:
 	c.custom_minimum_size = Vector2(0, height)
 	return c
 
+## 鼠标在窗口里移动就朝它偏：离中心越远推得越多，移出窗口时回中。
+## 划得快的那几下再额外给弹簧一个冲量，所以按钮附近小幅晃动也看得出来。
+## 事件坐标是视口坐标；标题铺满视口、原点在 (0,0)，所以和这个控制的局部坐标一样。
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		_mouse_to((event as InputEventMouseMotion).position)
+	elif event is InputEventScreenDrag:
+		_mouse_to((event as InputEventScreenDrag).position)
+
+## 当前视差偏移（-1..1，两轴）。测试和截图读它，别直接碰私有字段。
+func sway() -> Vector2:
+	return _sway
+
+func _mouse_to(pos: Vector2) -> void:
+	if _mouse_seen:
+		# 这一小段划多远：位移越大，画面被带得越多（和视差同一个方向，等于多带了一段惯性）。
+		# 单次位移封顶，免得鼠标瞬移（窗口刚出现、传送）把画面一下甩出去。
+		var step := ((pos - _mouse_last) / size.max(Vector2.ONE)).limit_length(SWAY_KICK_STEP)
+		_sway_v += step * SWAY_KICK
+	_mouse_last = pos
+	_mouse_seen = true
+	_point_at(pos)
+
+## pos：控制内坐标。左上角 (-1,-1)、中心 (0,0)、右下角 (1,1)；窗口外当 0。
+func _point_at(pos: Vector2) -> void:
+	if size.x <= 0.0 or size.y <= 0.0:
+		return
+	var d := pos / size - Vector2(0.5, 0.5)
+	if absf(d.x) > 0.5 or absf(d.y) > 0.5:
+		_sway_target = Vector2.ZERO
+		return
+	_sway_target = (d * 2.0).limit_length(1.0)
+
+## 阻尼弹簧：目标一变，画面先冲过头再荡回来，最后停在目标上。
+func _step_sway(delta: float) -> void:
+	var acc := (_sway_target - _sway) * SWAY_STIFFNESS - _sway_v * SWAY_DAMPING
+	_sway_v += acc * delta
+	_sway += _sway_v * delta
+	# 到头就别再往外冲了，把速度也清掉，否则会贴着边界卡一下。
+	if absf(_sway.x) > SWAY_LIMIT:
+		_sway.x = signf(_sway.x) * SWAY_LIMIT
+		_sway_v.x = 0.0
+	if absf(_sway.y) > SWAY_LIMIT:
+		_sway.y = signf(_sway.y) * SWAY_LIMIT
+		_sway_v.y = 0.0
+
+## 视差：方向和鼠标相反（像镜头跟着视线转），近的层挪得多、远的层挪得少。
+func _begin_layer(depth: float) -> void:
+	draw_set_transform(-_sway * depth)
+
+func _end_layer() -> void:
+	draw_set_transform(Vector2.ZERO)
+
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BG)
+	var pad := SWAY_PAD
+	draw_rect(Rect2(-pad, -pad, size.x + pad * 2.0, size.y + pad * 2.0), BG)
+	_begin_layer(SWAY_STAR_DUST)
 	for s in _stars:
 		draw_circle(Vector2(s.x, s.y) * size, 1.3, Color(1, 1, 1, 0.2 + 0.2 * sin(_t * 1.3 + s.z)))
 	_draw_scene()
+	_begin_layer(SWAY_FLIGHT)
 	_draw_star_flight()
+	_end_layer()
 
 ## 左边：郊区。低矮的坡屋顶房子 + 栅栏 + 光秃的树。
 func _draw_suburb(x0: float, x1: float, ground: float) -> void:
@@ -147,24 +233,30 @@ func _draw_city(x0: float, x1: float, ground: float, lit := 1.0) -> void:
 		x += w + 14.0
 		i += 1
 
-## 背景"游戏内容"：地砖、几盏路、站着的小人、几颗掉在地上的星屑、远处的噬光者。
-## 全是剪影，不抢小星的气场。
+## 背景"游戏内容"：地砖、几盏路灯、站着的小人、几颗掉在地上的星屑、远处的噬光者。
+## 全是剪影，不抢小星的气场。从前到后分四层，各自按视差挪一点。
 func _draw_scene() -> void:
 	var w := size.x
 	var h := size.y
 	var floor_y := h * 0.82
-	draw_rect(Rect2(0.0, floor_y, w, h - floor_y), Color(0.045, 0.05, 0.09))
+	# 地面：最近的一层。往上多铺一截，天际线相对它挪开时不会露缝。
+	_begin_layer(SWAY_GROUND)
+	var edge := 14.0
+	draw_rect(Rect2(-SWAY_PAD, floor_y - edge, w + SWAY_PAD * 2.0,
+		h - floor_y + edge + SWAY_PAD), Color(0.045, 0.05, 0.09))
 	for row in 2:
 		var y := floor_y + row * 26.0
 		var offset := 0.0 if row == 0 else 34.0
 		for x in range(-1, int(w / 68.0) + 2):
 			var bx := x * 68.0 + offset
 			draw_rect(Rect2(bx, y, 62.0, 22.0), Color(0.07, 0.065, 0.10))
-	# 郊区一直在；城市要等真结局之后才亮起来
-	_draw_suburb(0.0, w * 0.46, floor_y)
+	# 郊区和城市：远一层。左右各多画一截，挪开以后边上不会空。
+	_begin_layer(SWAY_SKY)
+	_draw_suburb(-SWAY_PAD - 20.0, w * 0.46, floor_y)
 	if _dawn > 0.01:
-		_draw_city(w * 0.54, w, floor_y, _dawn)
-	# 噬光者：没打真结局时压在右上角，打完之后随着天亮消失
+		_draw_city(w * 0.54, w + SWAY_PAD, floor_y, _dawn)
+	# 噬光者：压在远处，只挪一点点
+	_begin_layer(SWAY_BOSS)
 	if _dawn < 0.99:
 		var boss := Vector2(w * 0.80, h * 0.30)
 		var a := 1.0 - _dawn
@@ -173,6 +265,8 @@ func _draw_scene() -> void:
 		draw_arc(boss, 90.0, 0.0, TAU, 48, Color(0.35, 0.16, 0.46, 0.35 * a), 2.0, true)
 		for side: float in [-1.0, 1.0]:
 			draw_circle(boss + Vector2(26.0, side * 12.0), 4.0, Color(1.0, 0.35, 0.48, 0.55 * a))
+	# 路灯、小人、星屑：最前面
+	_begin_layer(SWAY_PROPS)
 	# 路灯：没天亮时是熄的（只有柱子），天亮后灯芯开始亮
 	for i in 3:
 		var lamp_pos := Vector2(w * (0.12 + 0.13 * i), floor_y - 46.0)
@@ -201,6 +295,7 @@ func _draw_scene() -> void:
 		var shard := Vector2(w * (0.18 + 0.15 * i), floor_y + 6.0 + 9.0 * float(i % 3))
 		var glow := 0.35 + 0.35 * _dawn
 		_draw_star(shard, 4.5, Color(1.0, 0.91, 0.63, glow + 0.15 * sin(_t * 3.0 + i)))
+	_end_layer()
 
 ## 小星：先往上飞，到顶再转弯飞下来，一圈一圈地绕着飞（椭圆的轨道 + 尾迹）
 func _draw_star_flight() -> void:

@@ -8,7 +8,7 @@
 ## 1. 一句话现状
 
 Godot 4.7.2 做的 2D 像素风叙事跑酷/潜行游戏，五个章节 + 终章 boss 追逐 + 双结局。
-**23 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
+**25 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
 
 ---
 
@@ -134,7 +134,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 
 ---
 
-## 6. 测试清单（23 项）
+## 6. 测试清单（25 项）
 
 | 测试 | 覆盖 |
 |---|---|
@@ -155,6 +155,8 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 | `test_touch` | 触屏按钮布局 |
 | `test_flow` | 标题→游戏→暂停→结局的流程 |
 | `test_finale` | 终章追逐、加速带、双结局（迷宫在此测试里被抹平） |
+| `test_ending_normal` | 普通结局动画的时间线、循环段、Esc 回标题 |
+| `test_title_sway` | 标题页鼠标视差：偏哪边往反方向挪、移出窗口回中、没人动鼠标时不晃 |
 | `test_lanes` | 赛道段拼接 |
 | `test_stage` | 速度阶段阈值 |
 
@@ -203,6 +205,11 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 ### 7.6 UI（几乎全图形，不写字）
 - 标题：小星绕椭圆轨道飞（先上后下转弯）+ 左郊区右城市背景；
   **打通真结局后**城市才亮起、噬光者消失（`Save.endings["hidden"]`）。
+- 标题随鼠标晃（`title.gd`）：鼠标偏到哪边，画面就往反方向挪，近的层挪得多
+  （星空 8px / 天际线 17px / 地面 25px / 路灯小人星屑 36px / 飞行的小星 21px），
+  用阻尼弹簧收（会先冲过头再荡回来），快速划过时还会多带一下（冲量，约 20% 过冲）。
+  移出窗口或回中心就回中；
+  **没人动鼠标（键盘、触屏、headless 截图）时完全静止**，别让画面自己漂。
 - 菜单：`▶ ↻ ✦⚙ ⌂ ✧ ▤ ✕` 全 `_draw` 画的图标（`icon_button.gd`）。
 - 设置：喇叭/音符 + 10 格音量条 + ★◐⚫ 三档难度（`settings.gd`）。
 - 制作名单：全游戏唯一写字的界面，可滚动、右上角 ✕。
@@ -283,6 +290,8 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 - `tools/shots_tour.tscn -- <章>`：自动把小星放到这一章每个小人/镜子/影鬼/机关/出口旁边各录一组帧（不用手写坐标），
   镜头范围去掉了，小星永远在画面正中
 - `tools/shots_feel.tscn`：用几种速度朝墙发射，录撞墙那几帧，看压扁/火花/顿挫
+- `tools/shots_title_sway.tscn`：标题页鼠标视差——把鼠标放到中间/右边/左上各录一帧，
+  从帧里量得出每层错开多少（星空 8 / 天际线 17 / 地面 25 / 路灯小人 36）
 - `tools/level_report.py`：每章主路线俯视图 + 路线长度、直道、小人离路线多远、补给密度（`.tmp_build/report_<章>.png`）
 - `tools/check_maps.py`：按小星半径查通行（ch1 那一遍现在把栅栏当实体）
 

@@ -31,7 +31,7 @@ python tools/check_maps.py
 #   还有 test_save / test_light / test_light_level / test_collisions / test_boss / test_level_smoke
 ```
 
-测试清单（16 个场景，脚本都在 `tests/` 里，头两行写明这条测试查什么）：
+测试清单（25 个场景，脚本都在 `tests/` 里，头两行写明这条测试查什么）：
 
 | 测试 | 查什么 |
 |---|---|
@@ -43,6 +43,7 @@ python tools/check_maps.py
 | test_audio / test_touch | 音效接线与冷却；触屏摇杆、光按钮、切回键鼠 |
 | test_save / test_light / test_light_level / test_collisions / test_boss | 存档格式、光、测试关通关、撞击表、噬光者 |
 | test_level_smoke | 两张测试关的冒烟（按右 2 秒，看有没有报错） |
+| test_ending_normal / test_title_sway | 普通结局动画的时间线；标题页鼠标视差（各层错开、移出窗口回中、没人动鼠标时不晃） |
 
 ## 导出 Web
 
