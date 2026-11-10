@@ -250,14 +250,17 @@ func _on_chapter_cleared(_id: StringName) -> void:
 	await get_tree().create_timer(CLEAR_TIME).timeout
 	_load_chapter(chapter_index + 1)
 
-## 噬光者退回黑暗 = 正常结局；被撞碎 = 隐藏结局。等它的演出播完再切。
+## 噬光者退回黑暗 = 跑到终点了；被撞碎 = 把它打碎了。等它的演出播完再切。
+## 真结局（隐藏结局）的条件：所有人已救 + 到达终点（把噬光者直接撞碎也算到达）。
+## 没救全就只是正常结局。
 func _on_boss_state_changed(state: int) -> void:
 	if flow != Flow.CHASE:
 		return
 	if state == Boss.State.RETREAT or state == Boss.State.SHATTERED:
 		flow = Flow.ENDING
+		var truth := state == Boss.State.SHATTERED or everyone_rescued()
 		await get_tree().create_timer(Boss.FADE_TIME).timeout
-		_show_ending(&"hidden" if state == Boss.State.SHATTERED else &"main")
+		_show_ending(&"hidden" if truth else &"main")
 
 ## 结局用哪个场景：隐藏结局是连环画（缺图退回老结局页），正常结局是动画。
 static func ending_scene(kind: StringName) -> String:

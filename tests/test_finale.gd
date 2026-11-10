@@ -1,6 +1,7 @@
 extends Node
-## 终章的无头测试：拼接、帮助点按救人情况出现、隧道、开头锁住、检查点和复活、帮助的效果、正常结局，
-## 最后让小星自己从头跑：一个都没救跑到逃离点（正常结局）；全救了从科学家的虫洞掉头撞碎噬光者（隐藏结局）。
+## 终章的无头测试：拼接、帮助点按救人情况出现、隧道、开头锁住、检查点和复活、帮助的效果、两种结局，
+## 最后让小星自己从头跑：一个都没救跑到逃离点（正常结局）；全救了跑到终点就是真结局，
+## 从科学家的虫洞掉头撞碎噬光者也是真结局（隐藏结局）。
 ##   godot --headless --path . --fixed-fps 60 res://tests/test_finale.tscn
 ## 直接运行终章场景（不经过标题，不写存档）。会换场景，所以测试逻辑放在挂到 root 下的 Runner 上。
 
@@ -84,7 +85,7 @@ class Runner extends Node:
 	func _run() -> bool:
 		_check("各章的小人一共 NPC_TOTAL 个", _npc_count() == Game.NPC_TOTAL, "%d" % _npc_count())
 
-		# 全救了：拼接、帮助点、隧道、开头锁住、检查点、帮助的效果、复活、正常结局。
+		# 全救了：拼接、帮助点、隧道、开头锁住、检查点、帮助的效果、复活，最后跑到终点就是真结局（不用撞碎噬光者）。
 		Game.debug_no_decay = true
 		Game.debug_no_enemies = true
 		# 迷宫本身用 tools/probe_maze 验；这里只验追逐、加速带和结局分支。
@@ -167,7 +168,10 @@ class Runner extends Node:
 
 		p.global_position = (finale.find_children("*", "EscapePoint", true, false)[0] as Node2D).global_position
 		_check("跑到逃离点：小星停下，噬光者退回黑暗", await _until(func() -> bool: return boss.state == Boss.State.RETREAT, 30) and p.state == Player.State.LOCKED)
-		_check("正常结局", await _until(_in_ending) and Game.ending == &"main" and Save.endings.get("main") == true)
+		_check("全救了：跑到终点就是真结局（不用撞碎噬光者）",
+			await _until(_in_ending) and Game.ending == &"hidden" and Save.endings.get("hidden") == true
+				and get_tree().current_scene.scene_file_path == Game.ENDING_COMIC_SCENE,
+			"ending=%s" % Game.ending)
 
 		# 一个都没救：没有帮助点，隧道是墙；自己跑到逃离点。
 		Game.debug_no_decay = false

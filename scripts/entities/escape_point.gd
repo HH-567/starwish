@@ -1,7 +1,8 @@
 @tool
 class_name EscapePoint
 extends Area2D
-## 逃离点：终章结尾的终点（docs/state-machines.md 第 13 节）。小星跑到这里就停下，噬光者退回黑暗，进正常结局。
+## 逃离点：终章结尾的终点（docs/state-machines.md 第 13 节）。小星跑到这里就停下，噬光者退回黑暗。
+## 所有人都已救时这里就是真结局（连环画）；没救全才是正常结局。
 ## 一扇黎明色的光门，自己发光。
 
 enum State { OPEN, REACHED }
