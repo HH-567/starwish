@@ -327,12 +327,14 @@ func play_bgm(id: StringName) -> void:
 				break
 	if stream == null:
 		return
-	# WAV 需要自己开循环；ogg 在导入时设了 loop。
+	# WAV 需要自己开循环；ogg 一般靠导入参数，这里也兜底开上（新做的 BGM 全是 ogg）。
 	if stream is AudioStreamWAV:
 		var wav := stream as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		wav.loop_begin = 0
 		wav.loop_end = wav.get_length() * wav.mix_rate
+	elif stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
 	_bgm_current = id
 	var next := _bgm_b if _bgm_active == _bgm_a else _bgm_a
 	var prev := _bgm_active

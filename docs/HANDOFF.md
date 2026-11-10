@@ -8,7 +8,7 @@
 ## 1. 一句话现状
 
 Godot 4.7.2 做的 2D 像素风叙事跑酷/潜行游戏，五个章节 + 终章 boss 追逐 + 双结局。
-**29 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
+**30 项 headless 测试全绿**，Web 包可导出，美术/音频/关卡都已落地。
 
 ---
 
@@ -90,7 +90,7 @@ starwish/
 │  └─ shots_*.gd               截图小场景
 ├─ tests/                   23 个 headless 测试
 ├─ assets/art/              位图美术（按 22 个类别分目录，见 docs/art-spec.md）
-├─ audio/                   10 个音效 wav + bgm/ 9 首（本地合成的占位曲）
+├─ audio/                   32 个音效 wav + bgm/ 9 首（Stable Audio 3 Medium 本地生成）
 ├─ fonts/                   CJK 字体
 └─ docs/                    ★ 设计/美术/音频/踩坑文档，见第 9 节索引
 ```
@@ -135,7 +135,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 
 ---
 
-## 6. 测试清单（29 项）
+## 6. 测试清单（30 项）
 
 | 测试 | 覆盖 |
 |---|---|
@@ -161,6 +161,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 | `test_turnaround` | 真结局最后一棒：从科学家的虫洞掉头冲刺，必须撞碎噬光者并进连环画（F6 那条路） |
 | `test_difficulty_enemies` | 永夜级多出来的影鬼落在空地上，不压墙 |
 | `test_hard_supply` | 邮差房里那颗困难模式补给：普通模式没有、长夜/永夜级有且不会被收走、碰到回光 |
+| `test_bgm` | 九首 BGM 都在、是 ogg、能加载、循环开着、`play_bgm` 切得过去 |
 | `test_title_sway` | 标题页鼠标视差：偏哪边往反方向挪、移出窗口回中、没人动鼠标时不晃 |
 | `test_lanes` | 赛道段拼接 |
 | `test_stage` | 速度阶段阈值 |
@@ -336,16 +337,19 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 - `audio/*.wav`：原来 10 个 + `tools/sfx_synth.py` 合成的 22 个（清单见 `docs/audio-brief.md`）。
   `Audio.play`（普通）、`Audio.play_at`（带位置，1100 px 外不播）、`Audio.hold`（循环音，每帧续命，不续就淡出）。
   合成音效**只看过波形和频谱、没有人耳听过**，第一次跑游戏请先听一遍。
-- `audio/bgm/*.wav`：9 首**本地合成的占位曲**（title / ch0..ch4 / chase / ending_normal / ending_hidden）。
-- 替换方式：把 Suno 生成的曲子按同名覆盖（`.ogg` 优先于 `.wav`），**代码不用改**。
-  `Audio.play_bgm` 会依次找 `.ogg` → `.wav`。
+- `audio/bgm/*.ogg`：9 首 BGM，**本地 Stable Audio 3 Medium 生成**（不花钱、不联网）：
+  title / ch0..ch4 / chase（终章 boss 追逐）/ ending_normal（普通结局动画）/ ending_hidden（真结局连环画）。
+  每首先做首尾 2 秒交叉淡化（能无缝循环）再标准化到 -16 LUFS；生成脚本 `sa3-bgm/gen_starwish_bgm.py`，
+  收尾脚本 `sa3-bgm/postprocess_bgm.sh`，怎么重出一套见 `docs/bgm-status.md`。
+- 替换方式：把新曲子按同名覆盖（`.ogg` 优先于 `.wav`），**代码不用改**；`Audio.play_bgm` 会依次找 `.ogg` → `.wav`，
+  ogg 的循环在 `play_bgm` 里兜底打开。
 
 ---
 
 ## 12. 已知问题 / 待办（按优先级）
 
 1. **触屏/手柄未实机验证**：`Controls` 与 `tests/test_touch` 覆盖了布局，但没有真机手感验证。
-2. **BGM 是占位曲**：需要真人用 Suno 生成后替换（清单见 `docs/bgm-status.md`）。
+2. ~~BGM 是占位曲~~ 已换成 Stable Audio 3 Medium 本地生成的一套（见 `docs/bgm-status.md`）。
 3. **难度切换要重进本章**才生效（有意为之，避免中途重排关卡）。
 4. **长夜级"补给只在敌人身后"是近似实现**（300px 内算"身后"），因为敌人是固定炮台、没有明确朝向。
 5. **`test_finale` 里迷宫被抹平**（`Game.debug_flat_maze`）：真实迷宫由 `probe_maze` 验。
