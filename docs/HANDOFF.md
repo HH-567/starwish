@@ -90,7 +90,7 @@ starwish/
 │  └─ shots_*.gd               截图小场景
 ├─ tests/                   23 个 headless 测试
 ├─ assets/art/              位图美术（按 22 个类别分目录，见 docs/art-spec.md）
-├─ audio/                   32 个音效 wav + bgm/ 9 首（Stable Audio 3 Medium 本地生成）
+├─ audio/                   33 个音效 wav + bgm/ 9 首（Stable Audio 3 Medium 本地生成）
 ├─ fonts/                   CJK 字体
 └─ docs/                    ★ 设计/美术/音频/踩坑文档，见第 9 节索引
 ```
@@ -334,7 +334,9 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 - 风格：暗色剪影 + 暖光，人物只要轮廓能看出职业。
 
 ### 音频
-- `audio/*.wav`：原来 10 个 + `tools/sfx_synth.py` 合成的 22 个（清单见 `docs/audio-brief.md`）。
+- `audio/*.wav`：原来 10 个 + `tools/sfx_synth.py` 合成的 23 个（清单见 `docs/audio-brief.md`）。
+  撞碎影鬼单独用 `shatter`（清脆起音 + 玻璃碎屑 + 往下散掉的虚空吸气），和撞墙的 `smash`、裂墙的 `break` 分开；
+  配方在 `tools/sfx_synth.py` 的 `sfx_shatter()`，连击时音高跟着连击往上走。
   `Audio.play`（普通）、`Audio.play_at`（带位置，1100 px 外不播）、`Audio.hold`（循环音，每帧续命，不续就淡出）。
   合成音效**只看过波形和频谱、没有人耳听过**，第一次跑游戏请先听一遍。
 - `audio/bgm/*.ogg`：9 首 BGM，**本地 Stable Audio 3 Medium 生成**（不花钱、不联网）：

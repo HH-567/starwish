@@ -23,6 +23,7 @@ const STREAMS := {
 	# 下面这些是 tools/sfx_synth.py 合成的
 	&"bounce": preload("res://audio/bounce.wav"),
 	&"smash": preload("res://audio/smash.wav"),
+	&"shatter": preload("res://audio/shatter.wav"),
 	&"stop": preload("res://audio/stop.wav"),
 	&"shard": preload("res://audio/shard.wav"),
 	&"warn": preload("res://audio/warn.wav"),
@@ -57,6 +58,7 @@ const COOLDOWN := {
 	&"help": 0.2,
 	&"bounce": 0.07,
 	&"smash": 0.06,
+	&"shatter": 0.05,
 	&"stop": 0.15,
 	&"shard": 0.04,
 	&"warn": 0.5,
@@ -93,6 +95,7 @@ const LEVELS := {
 	&"ending": 0.0,
 	&"bounce": -2.0,
 	&"smash": 0.0,
+	&"shatter": -1.0,
 	&"stop": -1.0,
 	&"shard": -1.0,
 	&"warn": -1.0,

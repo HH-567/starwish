@@ -176,7 +176,8 @@ func _burst() -> void:
 	Debris.spawn(get_parent(), global_position, EDGE_COLOR, 14 + combo * 2, 240.0, 6.0, true)
 	Game.player_hit.emit(&"kill")
 	Game.enemy_killed.emit(_kill_reason)
-	Audio.play_at(&"break", global_position, 1.0 + 0.06 * float(mini(combo - 1, 6)))
+	# 撞碎影鬼有自己的一套声音（和撞墙的 smash、裂墙的 break 分开）；连击越高音越高
+	Audio.play_at(&"shatter", global_position, 1.0 + 0.06 * float(mini(combo - 1, 6)))
 	queue_free()
 
 ## 美术图：待机 / 瞄准 / 开火三张 32×32 剪影。

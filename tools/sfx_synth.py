@@ -415,10 +415,36 @@ def sfx_shield():
     return room(mix(ting * 0.6, push * 0.8), wet=0.25, tail=0.35)
 
 
+def sfx_shatter():
+    # 撞碎影鬼：一记清脆的起音 + 暗影玻璃炸开的碎屑 + 一点往下坠的虚空吸气。
+    # 和撞墙的 smash 区分开：更亮、更「散」，尾巴是散掉而不是塌掉；但不能太尖（风格：暖、玻璃感）。
+    d = 0.5
+    n = int(SR * d)
+    # 起音：2ms 的高频「嗒」，让冲击点清楚（碎屑是随机的，不给一个准头会显得糊）
+    tick = onepole_hp(noise(int(SR * 0.006)), 2800) * env_ad(int(SR * 0.006), 0.0002, 0.0016)
+    boom = thump(d, 140, 44, 0.085)
+    # 中频「实体」：补 200-900 Hz 那一块，不然只有低频和刺啦声，听着薄
+    core = biquad_bp(noise(int(SR * 0.09)), 540, 0.75) * env_ad(int(SR * 0.09), 0.0005, 0.020)
+    # 碎屑集中在头 120ms，后面越撒越稀
+    dens = np.exp(-t_axis(d) / 0.055)
+    crack = crackles(d, 420, 0.0025, 4200, 1.3, dens)
+    shards = at(crackles(0.3, 55, 0.004, 7600, 2.2) * np.exp(-t_axis(0.3) / 0.09), 0.015, d)
+    # 两三颗不谐和的晶体泛音，像碎片在空中转
+    ring = bell(d, 2093.0, 0.09, 0.45, (1.0, 2.41, 3.94, 5.31)) * 0.7
+    ring += at(bell(0.3, 2794.0, 0.06, 0.4, (1.0, 2.63, 4.1)), 0.012, d) * 0.3
+    # 虚空吸气：带通从 5k 扫到 700，接在爆炸后面散掉
+    m = int(SR * 0.42)
+    suck = biquad_bp(noise(m), np.geomspace(5000, 700, m), 1.1) * env_ad(m, 0.01, 0.12)
+    tail = at(suck, 0.04, d)
+    # 配比：低频只做「底」，主角是起音和碎屑（不然听着只是一声闷响）
+    return room(mix(tick, boom * 0.45, core * 1.1, crack * 1.25, shards * 1.7, ring, tail * 0.55),
+                wet=0.15, tail=0.14)
+
 # 名字 → (函数, 目标响度：最响 100 ms 的 RMS，dBFS)。常见的轻，少见的响；循环的最轻。
 SFX = {
     "bounce": (sfx_bounce, -19.0),
     "smash": (sfx_smash, -13.0),
+    "shatter": (sfx_shatter, -15.0),
     "stop": (sfx_stop, -17.0),
     "shard": (sfx_shard, -17.0),
     "warn": (sfx_warn, -17.0),

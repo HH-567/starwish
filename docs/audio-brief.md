@@ -118,6 +118,7 @@ similar to the mood of Journey / Gris / Inside soundtracks
 | `door` | 铁门升起 | 0.9s | 金属摩擦 + 落地 |
 | `ui_click` | 按钮 | 0.12s | 极短的木头"嗒" |
 | `deploy` | 加速带一路铺开 | 1.2s | 连续的点亮声，从近到远 |
+| `shatter` | 撞碎影鬼 | 0.6s | 清脆的起音 + 一簇玻璃碎屑 + 往下散掉的虚空吸气（连击越高音越高） |
 
 ---
 

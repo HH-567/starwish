@@ -10,8 +10,8 @@ func _ready() -> void:
 	Audio.count = 0
 	Audio.last_played = &""
 
-	# 原来的 10 个 + tools/sfx_synth.py 合成的一次性音效 19 个；循环音 3 个另算。
-	_check("一次性音效都加载进来了", Audio.STREAMS.size() == 29, "%d 个" % Audio.STREAMS.size())
+	# 原来的 10 个 + tools/sfx_synth.py 合成的 20 个；循环音 3 个另算。
+	_check("一次性音效都加载进来了", Audio.STREAMS.size() == 30, "%d 个" % Audio.STREAMS.size())
 	_check("循环音都加载进来了", Audio.LOOPS.size() == 3, "%d 个" % Audio.LOOPS.size())
 	var missing: Array[String] = []
 	for id: StringName in Audio.STREAMS:
@@ -36,6 +36,10 @@ func _ready() -> void:
 	_check("冷却内的重复触发丢掉", Audio.count == 1)
 	Audio.play(&"hit")
 	_check("换一种音效照常播", Audio.count == 2 and Audio.last_played == &"hit")
+
+	# 撞碎影鬼有专门的声音，不和撞墙 / 裂墙混用
+	Audio.play_at(&"shatter", Vector2.ZERO)
+	_check("撞碎影鬼用的是 shatter", Audio.last_played == &"shatter")
 
 	# 信号接线：救到人、烧藤、撞墙、过关、噬光者登场。
 	# 每种音效有冷却，前面直接播过，这里先等冷却过去。
