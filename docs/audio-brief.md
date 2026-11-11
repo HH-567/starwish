@@ -1,33 +1,14 @@
-# 音乐 / 音效外包需求（给 AI 音频工具）
+# 音频清单与规格
 
-> 现状：10 个音效是我自己用代码合成的（44.1kHz 立体声），够用但不惊艳；
-> **背景音乐完全没有**。这份文档是拿去给 AI 音频工具下单用的。
+游戏共 **9 首 BGM + 33 个音效**。这份文档记录每一段音频的用途、时长、质感要求和文件规格，替换音频时照此对照。
 
----
-
-## 一、工具怎么选
-
-| 用途 | 推荐 | 适合什么 | 注意 |
-|---|---|---|---|
-| **音效（SFX）** | **ElevenLabs Sound Effects** | 文字描述 → 1–3 秒的短音，撞击/碎裂/机械最准 | 免费额度少；付费档才有商用授权 |
-| 音效 | **Stable Audio 2.x** | 能出 1–45 秒，音乐/音效都行，循环段落可用 | 需要明确"one-shot, no music" |
-| 音效（自托管） | **AudioGen / AudioCraft** | 本地跑、免费、可批量 | 要 GPU；质量不如上面两个 |
-| **背景音乐** | **Suno（Instrumental 模式）** | 2–4 分钟完整曲子，风格最像"人做的" | **免费档不能商用**，要买付费档 |
-| 背景音乐 | **Udio** | 同上，编曲更细腻 | 同样注意商用授权 |
-| 背景音乐（可商用） | **Soundraw / Beatoven.ai** | 直接给商用授权，能指定段落长度、循环导出 | 风格偏"配乐库"，没那么有个性 |
-| 背景音乐（循环） | **Mubert** | 天生为循环/实时生成设计 | 适合做环境底噪 |
-
-**我的建议**：
-- **BGM 用 Suno 或 Soundraw**（先试 Suno，出不来再退 Soundraw 保商用）；
-- **SFX 用 ElevenLabs Sound Effects**（补现在缺的 8 个）。
-
-> 版本和授权条款可能变，下单前确认一下当前的商用许可。
+代码里，`Audio.play(id)` 播普通音效，`Audio.play_at(id, pos)` 播带位置的（离镜头 1100px 以外不播，近处按距离衰减、分左右声道），`Audio.hold(id)` 播循环音（每帧续命，不续就淡出）。
 
 ---
 
-## 二、背景音乐需求（9 段）
+## 一、背景音乐（9 首）
 
-统一要求写在前头：
+统一规格：
 
 ```text
 instrumental（不要人声、不要和声人声）
@@ -49,7 +30,7 @@ instrumental（不要人声、不要和声人声）
 | 8 | **结局·普通** | 释然、温暖 | 钢琴 + 弦乐渐强 + 钟 | 60 | 40s，不循环 |
 | 9 | **结局·隐藏** | 悲壮、光芒 | 弦乐 + 铜管 + 合唱"啊"（可以是合成垫） | 72 | 40s，不循环 |
 
-**风格基准**（写给 AI 的锚点）：
+**风格基准**：
 
 ```text
 warm minimal piano, music-box textures, soft analog pads,
@@ -57,11 +38,13 @@ distant city ambience, no drums except chase track,
 similar to the mood of Journey / Gris / Inside soundtracks
 ```
 
+替换方式：把新曲子按同名覆盖 `audio/bgm/*.ogg` 即可（`.ogg` 优先于 `.wav`），`Audio.play_bgm` 会依次找 `.ogg` → `.wav`，循环在 `play_bgm` 里兜底打开，代码不用改。
+
 ---
 
-## 三、音效需求
+## 二、音效（33 个）
 
-### 已经有的 10 个（想换更好的就换，规格照下表）
+### 基础 10 个
 
 | 名字 | 场景 | 时长 | 质感 |
 |---|---|---|---|
@@ -76,12 +59,11 @@ similar to the mood of Journey / Gris / Inside soundtracks
 | `boss` | 噬光者登场 | 1.5–1.8s | 低频威压，不要尖叫 |
 | `ending` | 结局 | 2.4s | 暖色和弦铺开 |
 
-> `death` 的 1.4 秒是硬要求：和消散动画同长，现在是 1.0 秒，动画还没播完声音就没了。
+> `death` 的 1.4 秒是硬要求：和消散动画同长。短了会出现动画还没播完、声音先没了。
 
-### 2026-11-10 补齐：程序合成的 22 个（`tools/sfx_synth.py`）
+### 其余 23 个（`tools/sfx_synth.py` 用 numpy 合成）
 
-原来缺的 8 个和更多事件都补上了，全部由 `tools/sfx_synth.py` 用 numpy 合成（暖、轻、八音盒/玻璃质感，
-没有金属尖响），想换真人做的就**同名覆盖** `audio/<名字>.wav` 再 `--import`，代码不用改。
+暖、轻、八音盒/玻璃质感，没有金属尖响。替换方式：同名覆盖 `audio/<名字>.wav` 再 `--import`，代码不用改。
 
 | 名字 | 什么时候响 | 怎么播 |
 |---|---|---|
@@ -100,29 +82,16 @@ similar to the mood of Journey / Gris / Inside soundtracks
 | `heart` | 亮度低于 25%，越暗跳得越快 | |
 | `cry` | 没救的人每 3 秒左右哭一声（藏着的人不哭） | 带位置，黑暗里循声找人 |
 | `shield` | 守夜人的盾挡住噬光者 | |
+| `shatter` | 撞碎影鬼 | 清脆起音 + 一簇玻璃碎屑 + 往下散掉的虚空吸气，连击越高音越高 |
 | `wind`（循环） | 速度越快越响越尖 | `Audio.hold` |
 | `wake`（循环） | 正在照醒小人，音高跟进度走 | 带位置 |
 | `crackle`（循环） | 影藤正在烧 | 带位置 |
 
-"带位置"= `Audio.play_at(id, pos)`：离镜头 1100 px 以外不播，近处按距离衰减、分左右声道。
-
-### 原来列的"还缺的 8 个"（已由上表覆盖，留作给外包的规格参考）
-
-| 名字 | 场景 | 时长 | 质感 |
-|---|---|---|---|
-| `accel` | 踩到加速带 | 0.3s | 短促的"呼"一声，方向感向上 |
-| `shot` | 影鬼开枪 | 0.25s | 短、闷、有点电子味（不是枪声） |
-| `meteor_warn` | 流星预警 | 0.8s | 低频嗡鸣 + 越来越急 |
-| `meteor_hit` | 流星落地 | 0.6s | 闷响 + 碎石 |
-| `checkpoint` | 检查点点亮 | 0.6s | 火柴擦着 + 轻微的回声 |
-| `door` | 铁门升起 | 0.9s | 金属摩擦 + 落地 |
-| `ui_click` | 按钮 | 0.12s | 极短的木头"嗒" |
-| `deploy` | 加速带一路铺开 | 1.2s | 连续的点亮声，从近到远 |
-| `shatter` | 撞碎影鬼 | 0.6s | 清脆的起音 + 一簇玻璃碎屑 + 往下散掉的虚空吸气（连击越高音越高） |
+`shatter` 和撞墙的 `smash`、裂墙的 `break` 是三条独立的音效，不要混用——撞碎影鬼的手感有一半来自这条。
 
 ---
 
-## 四、交付规格
+## 三、文件规格
 
 ```text
 格式：BGM 用 ogg（vorbis，q5）或 wav；SFX 用 wav
@@ -130,42 +99,7 @@ similar to the mood of Journey / Gris / Inside soundtracks
 BGM 响度：-16 LUFS；SFX：峰值 -3 dBFS，不要做母带压限
 命名：BGM → audio/bgm/<编号>_<名字>.ogg（如 02_ch0.ogg）
       SFX → 沿用 audio/<名字>.wav
-循环：BGM 请在文件名里标 loop，并告诉我"循环点在第几秒"
-交付：连同你用的提示词一起发我，方便下次补做同风格的
+循环：BGM 在文件名里标 loop，并注明循环点在第几秒
 ```
 
----
-
-## 五、可以直接粘的提示词
-
-### BGM 模板
-
-```text
-Instrumental only, no vocals. <情绪>。Warm minimal piano, music-box textures,
-soft analog pad, distant ambience. <BPM> BPM. Seamless loop, ends cleanly on a bar,
-no fade-out, no cymbal swell at the loop point. Around 90 seconds.
-Similar mood to Journey / Gris / Inside soundtracks. Cinematic but intimate.
-```
-
-把 `<情绪>` 换成下表：
-
-| 段 | 填什么 |
-|---|---|
-| 1 标题 | quiet, hopeful, waiting in the dark |
-| 2 ch0 | lonely and restrained, a small light in a big night |
-| 3 ch1 | quietly uneasy, something moving in the vines |
-| 4 ch2 | clear and suspended, glass reflections |
-| 5 ch3 | pushing forward, cracks spreading underfoot |
-| 6 ch4 | bright on the surface, hollow underneath |
-| 7 追逐 | urgent, relentless, do not look back |
-| 8 结局普通 | relieved and warm, the night is over |
-| 9 结局隐藏 | bittersweet and triumphant, a light that costs everything |
-
-### SFX 模板
-
-```text
-One-shot sound effect, <质感>，<时长>，no music, no reverb tail longer than 200ms,
-mono, 44.1kHz.
-```
-
-例：`One-shot sound effect, a wooden thud from a soft impact, 0.25 seconds, no music, no long reverb, mono, 44.1kHz.`
+替换任何一条音频后都要跑 `godot --headless --path . --import`，否则资源不会重新导入。

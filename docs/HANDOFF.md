@@ -1,6 +1,6 @@
 # 交接文档 · 星愿：撞碎长夜
 
-> 给接手的人（Claude）：这份文档把「怎么跑起来、代码怎么组织、哪些坑不能再踩、还剩什么没做」一次说清。
+> 给接手的人：这份文档把「怎么跑起来、代码怎么组织、哪些坑不能再踩、还剩什么没做」一次说清。
 > 先看第 1、2、3 节把环境跑通，再看第 8 节（踩坑清单）——那里的每一条都是实际踩出来的。
 
 ---
@@ -90,7 +90,7 @@ starwish/
 │  └─ shots_*.gd               截图小场景
 ├─ tests/                   23 个 headless 测试
 ├─ assets/art/              位图美术（按 22 个类别分目录，见 docs/art-spec.md）
-├─ audio/                   33 个音效 wav + bgm/ 9 首（Stable Audio 3 Medium 本地生成）
+├─ audio/                   33 个音效 wav + bgm/ 9 首
 ├─ fonts/                   CJK 字体
 └─ docs/                    ★ 设计/美术/音频/踩坑文档，见第 9 节索引
 ```
@@ -264,8 +264,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 | `state-machines.md` | ★ 所有状态机（玩家/敌人/boss/章节流程） |
 | `level-data-format.md` | 地图字符表与关卡数据格式 |
 | `art-spec.md` | 22 类美术资源规格与尺寸 |
-| `doubao-brief*.md` | 给豆包的出图提示词（历史） |
-| `audio-brief.md` / `bgm-status.md` | 音效/BGM 清单与替换方式 |
+| `audio-brief.md` | 33 个音效的用途清单与音频规格 |
 | `boss-maze-status.md` | 终章迷宫的演进与探针结论 |
 | `level-design-mirror-room.md` | ch1 镜子房的解法与踩坑 |
 | `level-design-bounce.md` | 反弹谜题设计 |
@@ -321,7 +320,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 ## 11. 美术与音频
 
 ### 美术
-- 管线：豆包出图 → 抠图/去底 → 放到 `assets/art/<类别>/` → `--import`。
+- 管线：出图 → 抠图/去底 → 放到 `assets/art/<类别>/` → `--import`。
 - 程序生成的部分（改脚本重跑，再 `--import`）：
   - `tools/tile_art.py`：墙 / 边界墙 / 地面图集，郊区（ch0–ch2）和城市（ch3、ch4）两套，16 个四邻掩码 × 4 个变体。
     墙沿高光 + 遮光体内缩（`scripts/levels/wall_tiles.gd`）让光照亮墙沿；地面挨墙的边有接触阴影
@@ -339,10 +338,9 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
   配方在 `tools/sfx_synth.py` 的 `sfx_shatter()`，连击时音高跟着连击往上走。
   `Audio.play`（普通）、`Audio.play_at`（带位置，1100 px 外不播）、`Audio.hold`（循环音，每帧续命，不续就淡出）。
   合成音效**只看过波形和频谱、没有人耳听过**，第一次跑游戏请先听一遍。
-- `audio/bgm/*.ogg`：9 首 BGM，**本地 Stable Audio 3 Medium 生成**（不花钱、不联网）：
+- `audio/bgm/*.ogg`：9 首 BGM：
   title / ch0..ch4 / chase（终章 boss 追逐）/ ending_normal（普通结局动画）/ ending_hidden（真结局连环画）。
-  每首先做首尾 2 秒交叉淡化（能无缝循环）再标准化到 -16 LUFS；生成脚本 `sa3-bgm/gen_starwish_bgm.py`，
-  收尾脚本 `sa3-bgm/postprocess_bgm.sh`，怎么重出一套见 `docs/bgm-status.md`。
+  每首先做首尾 2 秒交叉淡化（能无缝循环）再标准化到 -16 LUFS。
 - 替换方式：把新曲子按同名覆盖（`.ogg` 优先于 `.wav`），**代码不用改**；`Audio.play_bgm` 会依次找 `.ogg` → `.wav`，
   ogg 的循环在 `play_bgm` 里兜底打开。
 
@@ -351,7 +349,7 @@ tools/ch1_lane.txt ──┴─►  tools/build_test_levels.tscn  ──►  sce
 ## 12. 已知问题 / 待办（按优先级）
 
 1. **触屏/手柄未实机验证**：`Controls` 与 `tests/test_touch` 覆盖了布局，但没有真机手感验证。
-2. ~~BGM 是占位曲~~ 已换成 Stable Audio 3 Medium 本地生成的一套（见 `docs/bgm-status.md`）。
+2. ~~BGM 是占位曲~~ 已换成正式的一套（清单见 `docs/audio-brief.md`）。
 3. **难度切换要重进本章**才生效（有意为之，避免中途重排关卡）。
 4. **长夜级"补给只在敌人身后"是近似实现**（300px 内算"身后"），因为敌人是固定炮台、没有明确朝向。
 5. **`test_finale` 里迷宫被抹平**（`Game.debug_flat_maze`）：真实迷宫由 `probe_maze` 验。

@@ -1,11 +1,11 @@
-"""把生成的美术图变成游戏能用的 PNG：抠背景、裁边、缩到目标尺寸。
+"""把美术源图变成游戏能用的 PNG：抠背景、裁边、缩到目标尺寸。
 
 用法：
     python tools/art_import.py 源图.png 名字 --mode black --size 32
     python tools/art_import.py 源图.png characters/npc_watchman --mode green --size 24
     （名字带目录就存到 assets/art/<目录>/名字.png，不带就是 assets/art/名字.png）
 
-两种背景（docs/art-prompts.md 里的约定）：
+两种背景：
     black  发光类：纯黑底，亮度当透明度。星、光晕、弹幕、传送门、Boss、特效。
     green  实心类：纯绿底（#00FF00），抠绿并去掉绿色溢色。小人、墙、门、机关。
 """

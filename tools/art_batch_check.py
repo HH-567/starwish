@@ -1,7 +1,7 @@
 """看一眼新一批图的批量体检：尺寸、颜色数（像素感）、半透明比例（有没有抗锯齿）、内容占比，
 顺便拼一张联系表。目录可以是任意位置。
 
-    python tools/art_batch_check.py "C:\\Users\\21397\\Desktop\\豆包画室" --sheet .tmp_build/sheet.png
+    python tools/art_batch_check.py "D:\\art\\batch" --sheet .tmp_build/sheet.png
 """
 import argparse
 import glob

@@ -75,8 +75,8 @@ Godot 4.7.2 · GDScript · 五章 + 终章 · 双结局 · 30 项自动化测试
 - **引擎**：Godot 4.7.2，GL Compatibility 渲染后端（能导出 Web）
 - **语言**：GDScript，四个 autoload：`Save` / `Game` / `Audio` / `Controls`
 - **关卡**：不是手摆的。`tools/*_map.txt` 里是 ASCII 地图，`tools/build_test_levels.gd` 把它编译成 `.tscn`。场景是**生成物**。
-- **美术**：豆包出图 + 程序生成图集（`tools/tile_art.py` 画墙、地面，16 种四邻掩码 × 4 个变体）。所有贴图都有代码兜底——图没了会退化成几何绘制，不崩，只是变丑。
-- **音频**：33 个音效（10 个采样 + 23 个用 `tools/sfx_synth.py` 合成的）＋ 9 首 BGM，BGM 由 **Stable Audio 3 Medium 本地生成**，首尾交叉淡化后标准化到 −16 LUFS，可以无缝循环。
+- **美术**：位图 + 程序生成图集（`tools/tile_art.py` 画墙、地面，16 种四邻掩码 × 4 个变体）。所有贴图都有代码兜底——图没了会退化成几何绘制，不崩，只是变丑。
+- **音频**：33 个音效（10 个采样 + 23 个用 `tools/sfx_synth.py` 合成的）＋ 9 首 BGM，首尾交叉淡化后标准化到 −16 LUFS，可以无缝循环。
 - **字体**：文泉驿正黑（CJK）
 - **测试**：30 个 headless 场景测试，覆盖碰撞、光照、boss 状态机、五章通关、双结局、音频、设置、触屏布局、流程切换
 
@@ -145,7 +145,6 @@ starwish/
 ├─ tests/                   30 个 headless 测试
 ├─ assets/art/              位图美术，按 22 个类别分目录
 ├─ audio/                   33 个音效 + bgm/ 9 首
-├─ sa3-bgm/                 BGM 生成脚本
 └─ docs/                    设计 / 美术 / 音频 / 踩坑文档
 ```
 
@@ -161,8 +160,7 @@ starwish/
 | [`docs/state-machines.md`](docs/state-machines.md) | 所有状态机（玩家 / 敌人 / boss / 章节流程） |
 | [`docs/level-data-format.md`](docs/level-data-format.md) | ASCII 地图字符表 |
 | [`docs/art-spec.md`](docs/art-spec.md) | 22 类美术资源规格与尺寸 |
-| [`docs/audio-brief.md`](docs/audio-brief.md) | 音效清单与合成配方 |
-| [`docs/bgm-status.md`](docs/bgm-status.md) | 9 首 BGM 的生成与替换方式 |
+| [`docs/audio-brief.md`](docs/audio-brief.md) | 33 个音效的用途清单与音频规格 |
 | [`docs/boss-maze-status.md`](docs/boss-maze-status.md) | 终章迷宫的演进与探针结论 |
 | [`docs/delivery.md`](docs/delivery.md) | 交付清单 |
 
@@ -179,6 +177,8 @@ starwish/
 
 ## 关于
 
-Game Jam 作品。引擎 Godot 4.7.2，全部代码与关卡数据开源；美术用豆包生成后手工整理，BGM 用 Stable Audio 3 Medium 本地生成，音效用脚本合成。
+Game Jam 作品。引擎 Godot 4.7.2，代码、关卡数据和美术资源全部开源。
+
+关卡是 ASCII 地图编译出来的，场景文件一律是生成物；美术按 `docs/art-spec.md` 的规格产出；音效用脚本合成，BGM 首尾做交叉淡化，所以能无缝循环。
 
 欢迎提 Issue 或接手完善。
