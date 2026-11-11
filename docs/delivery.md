@@ -66,6 +66,24 @@ python -m http.server 8099 --directory build --bind 127.0.0.1
 
 音频要等第一次点击/按键（浏览器策略），触屏设备上会自动出摇杆。
 
+## 导出 Windows 单文件 exe（点击即玩）
+
+```powershell
+& $G --headless --path . --export-release 'Windows Desktop' 'build\windows\Starwish.exe'
+# 产物是单个自包含 exe（binary_format/embed_pck=true），没有目录、没有安装程序，双击进标题
+Move-Item build\windows\Starwish.exe 'build\windows\星愿.exe'
+```
+
+- 图标：`icon.png`（256，窗口图标，`project.godot` 的 `config/icon`）+ `icon.ico`（16/24/32/48/64/128/256，
+  导出器嵌进 exe，`application/icon="res://icon.ico"`）。源图是那颗戴围巾的星星（白底已抠掉）。
+- 版本信息：`application/product_name` / `file_version` 都设了（`星愿：撞碎长夜` / `1.0.0.0`），
+  资源管理器"属性 → 详细信息"能看到；exe 文件名不能带冒号，所以叫 `星愿.exe`。
+- 验证：`& 'build\windows\星愿.exe' --headless --verbose --quit`，日志里应有
+  `Completed load for: 'res://scenes/ui/title.tscn'`（控制台版才看得到 stdout）。
+- **没签名**：别人第一次运行可能遇到 SmartScreen（更多信息 → 仍要运行）；
+  刚生成的 138MB exe 第一次启动也可能被杀软扫几十秒，第二次就正常。
+- 打包分享：`Compress-Archive` 压成 zip（138MB → 约 62MB）。
+
 ## 现在的状态（2026-11-03）
 
 - 正式章节 ch0–ch4 全部完成并接进 `CHAPTERS`，测试关只留在 `tests/` 里当样本。
