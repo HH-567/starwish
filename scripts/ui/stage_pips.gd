@@ -1,7 +1,10 @@
 extends Control
 ## 右上角速度阶段：5 个菱形，当前档最亮最大，其他档淡色。
+## 右边要给齿轮（设置按钮，44×44，锚在右边往里 64）让位，不然第 5 档会叠在齿轮上。
 
 const MARGIN := 24.0
+## 从右边边缘往里收这么多：齿轮占 [W-64, W-20]，菱形右沿停在 W-76，留 12px 空隙。
+const RIGHT_INSET := 76.0
 const GAP := 30.0
 const R := 9.0
 ## 美术图：16×16 的菱形，代码用 modulate 染成 5 档颜色。
@@ -22,7 +25,7 @@ func _on_stage_changed(stage: int) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var right := get_viewport_rect().size.x - MARGIN
+	var right := get_viewport_rect().size.x - RIGHT_INSET
 	for i in 5:
 		var s := i + 1
 		var center := Vector2(right - (4 - i) * GAP - R, MARGIN + R)
