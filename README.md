@@ -12,6 +12,14 @@ Godot 4.7.2 · GDScript · 五章 + 终章 · 双结局 · 30 项自动化测试
 
 ---
 
+## 下载
+
+**[Windows 64 位 · 单文件 · 双击即玩（132 MB）](https://github.com/HH-567/starwish/releases/download/v1.0.0/StarWish-v1.0.0-win64.exe)**
+
+不用装 Godot 引擎，也不用装任何运行库。全部版本见 [Releases](https://github.com/HH-567/starwish/releases)。
+
+---
+
 ## 游戏简介
 
 城市的灯一盏一盏灭了。你是一颗还没放弃的星星。
@@ -82,9 +90,9 @@ Godot 4.7.2 · GDScript · 五章 + 终章 · 双结局 · 30 项自动化测试
 
 ---
 
-## 运行
+## 从源码运行
 
-**需要 Godot 4.7.2**（[下载](https://godotengine.org/download)）。
+**需要 Godot 4.7.2**（[下载](https://godotengine.org/download)）。只想玩的话用上面的下载链接就行，不用装引擎。
 
 ```bash
 git clone https://github.com/HH-567/starwish.git
